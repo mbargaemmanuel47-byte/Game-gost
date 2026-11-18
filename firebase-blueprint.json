@@ -1,0 +1,197 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Pilot profile, progression, high scores, and control/audio preferences.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the player."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Player display name."
+        },
+        "bestEndlessScore": {
+          "type": "integer",
+          "description": "Highest score achieved in Endless Survival mode."
+        },
+        "highestSector": {
+          "type": "integer",
+          "description": "Highest unlocked procedural sector index (starts at 1)."
+        },
+        "totalRuns": {
+          "type": "integer",
+          "description": "Cumulative total runs played."
+        },
+        "totalNearMisses": {
+          "type": "integer",
+          "description": "Cumulative total near-miss bonuses."
+        },
+        "preferredControlMode": {
+          "type": "string",
+          "enum": ["ALTERNATING", "CONTINUOUS", "SPLIT"],
+          "description": "Touch steering mode preference."
+        },
+        "musicOn": {
+          "type": "boolean",
+          "description": "Whether procedural synthwave soundtrack is enabled."
+        },
+        "sfxOn": {
+          "type": "boolean",
+          "description": "Whether sound effects are enabled."
+        },
+        "hapticsOn": {
+          "type": "boolean",
+          "description": "Whether haptic feedback is enabled."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "bestEndlessScore",
+        "highestSector",
+        "totalRuns",
+        "totalNearMisses",
+        "preferredControlMode",
+        "musicOn",
+        "sfxOn",
+        "hapticsOn",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GhostRecord": {
+      "title": "GhostRecord",
+      "description": "Recorded trajectory and crash coordinate of a player's failed run rendered as a translucent ghost.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner."
+        },
+        "sectorIndex": {
+          "type": "integer",
+          "description": "0 for Endless mode, >= 1 for procedural sector index."
+        },
+        "score": {
+          "type": "integer",
+          "description": "Score reached on that run."
+        },
+        "distance": {
+          "type": "integer",
+          "description": "Distance traveled in world units."
+        },
+        "crashX": {
+          "type": "number",
+          "description": "World X coordinate where the ghost crashed."
+        },
+        "crashY": {
+          "type": "number",
+          "description": "World Y coordinate where the ghost crashed."
+        },
+        "packedPoints": {
+          "type": "string",
+          "description": "Semicolon-delimited downsampled polyline x,y pairs."
+        },
+        "colorIndex": {
+          "type": "integer",
+          "description": "Palette accent index for this ghost trail."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "sectorIndex",
+        "score",
+        "distance",
+        "crashX",
+        "crashY",
+        "packedPoints",
+        "colorIndex",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RunLog": {
+      "title": "RunLog",
+      "description": "Immutable summary entry of a completed or crashed run.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner."
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["ENDLESS", "SECTOR"],
+          "description": "Game mode played."
+        },
+        "sectorIndex": {
+          "type": "integer",
+          "description": "0 for Endless mode, >= 1 for procedural sector index."
+        },
+        "score": {
+          "type": "integer",
+          "description": "Score achieved in this run."
+        },
+        "nearMisses": {
+          "type": "integer",
+          "description": "Number of near-miss bonuses earned."
+        },
+        "cleared": {
+          "type": "boolean",
+          "description": "True if the sector finish portal was reached."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "mode",
+        "sectorIndex",
+        "score",
+        "nearMisses",
+        "cleared",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Player profile, progression, and preferences scoped to authenticated user."
+    },
+    "/users/{userId}/ghosts/{ghostId}": {
+      "schema": { "$ref": "#/entities/GhostRecord" },
+      "description": "Saved ghost trajectory paths for the user's graveyard of past failures."
+    },
+    "/users/{userId}/runs/{runId}": {
+      "schema": { "$ref": "#/entities/RunLog" },
+      "description": "Recent run history logs scoped to the user."
+    }
+  }
+}

@@ -1,0 +1,150 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             data.bestEndlessScore is int && data.bestEndlessScore >= 0 && data.bestEndlessScore <= 100000000 &&
+             data.highestSector is int && data.highestSector >= 1 && data.highestSector <= 10000 &&
+             data.totalRuns is int && data.totalRuns >= 0 && data.totalRuns <= 10000000 &&
+             data.totalNearMisses is int && data.totalNearMisses >= 0 && data.totalNearMisses <= 10000000 &&
+             data.preferredControlMode is string && data.preferredControlMode in ['ALTERNATING', 'CONTINUOUS', 'SPLIT'] &&
+             data.musicOn is bool &&
+             data.sfxOn is bool &&
+             data.hapticsOn is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidGhostRecord(data, userId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.sectorIndex is int && data.sectorIndex >= 0 && data.sectorIndex <= 10000 &&
+             data.score is int && data.score >= 0 && data.score <= 100000000 &&
+             data.distance is int && data.distance >= 0 && data.distance <= 100000000 &&
+             data.crashX is number && data.crashX >= -1000000 && data.crashX <= 1000000 &&
+             data.crashY is number && data.crashY >= -1000000 && data.crashY <= 1000000 &&
+             data.packedPoints is string && data.packedPoints.size() >= 1 && data.packedPoints.size() <= 20000 &&
+             data.colorIndex is int && data.colorIndex >= 0 && data.colorIndex <= 10 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRunLog(data, userId) {
+      return data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+             data.mode is string && data.mode in ['ENDLESS', 'SECTOR'] &&
+             data.sectorIndex is int && data.sectorIndex >= 0 && data.sectorIndex <= 10000 &&
+             data.score is int && data.score >= 0 && data.score <= 100000000 &&
+             data.nearMisses is int && data.nearMisses >= 0 && data.nearMisses <= 100000 &&
+             data.cleared is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'bestEndlessScore', 'highestSector',
+                         'totalRuns', 'totalNearMisses', 'preferredControlMode',
+                         'musicOn', 'sfxOn', 'hapticsOn', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'bestEndlessScore', 'highestSector',
+                         'totalRuns', 'totalNearMisses', 'preferredControlMode',
+                         'musicOn', 'sfxOn', 'hapticsOn', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'bestEndlessScore', 'highestSector',
+                         'totalRuns', 'totalNearMisses', 'preferredControlMode',
+                         'musicOn', 'sfxOn', 'hapticsOn', 'updatedAt'
+                       ]);
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      match /ghosts/{ghostId} {
+        allow get: if isValidId(userId) && isValidId(ghostId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) &&
+                         isValidId(ghostId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'sectorIndex', 'score', 'distance',
+                           'crashX', 'crashY', 'packedPoints', 'colorIndex',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'sectorIndex', 'score', 'distance',
+                           'crashX', 'crashY', 'packedPoints', 'colorIndex',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidGhostRecord(incoming(), userId);
+
+        allow update: if isValidId(userId) &&
+                         isValidId(ghostId) &&
+                         isOwner(userId) &&
+                         isValidGhostRecord(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'score', 'distance', 'crashX', 'crashY', 'packedPoints', 'colorIndex', 'updatedAt'
+                         ]);
+
+        allow delete: if isValidId(userId) && isValidId(ghostId) && isOwner(userId);
+      }
+
+      match /runs/{runId} {
+        allow get: if isValidId(userId) && isValidId(runId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) &&
+                         isValidId(runId) &&
+                         isOwner(userId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'mode', 'sectorIndex', 'score', 'nearMisses', 'cleared', 'createdAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'mode', 'sectorIndex', 'score', 'nearMisses', 'cleared', 'createdAt'
+                         ]) &&
+                         isValidRunLog(incoming(), userId);
+
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(runId) && isOwner(userId);
+      }
+    }
+  }
+}

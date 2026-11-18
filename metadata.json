@@ -1,0 +1,6 @@
+{
+  "name": "Ghost Line",
+  "description": "Jeu d'arcade néon synthwave où vous esquivez les trajectoires fantômes de vos essais passés dans des niveaux procéduraux infinis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

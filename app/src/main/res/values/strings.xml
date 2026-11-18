@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">Ghost Line</string>
+    <string name="tagline">LE TRAJET FANTÔME</string>
+    <string name="auth_subtitle">Esquivez vos propres échecs dans un cimetière néon infini.</string>
+    <string name="auth_sign_in_google">Continuer avec Google</string>
+    <string name="auth_signing_in">Connexion en cours…</string>
+    <string name="auth_feature_1">Contrôle tactile 1 doigt ultra-précis</string>
+    <string name="auth_feature_2">Vos anciens trajets deviennent des fantômes mortels</string>
+    <string name="auth_feature_3">Niveaux procéduraux et bande-son synthwave</string>
+    <string name="nav_play">Jouer</string>
+    <string name="nav_graveyard">Cimetière</string>
+    <string name="nav_settings">Pilote</string>
+    <string name="mode_endless_title">Survie Infinie</string>
+    <string name="mode_endless_desc">Vitesse croissante, génération procédurale sans fin et record mondial personnel.</string>
+    <string name="mode_sector_title">Secteurs Procéduraux</string>
+    <string name="mode_sector_desc">Conquérez chaque secteur unique malgré le cimetière de vos essais passés.</string>
+    <string name="play_now">LANCER LA TRAJECTOIRE</string>
+    <string name="retry_instant">REJOUER</string>
+    <string name="next_sector">SECTEUR SUIVANT</string>
+    <string name="back_hub">RETOUR AU HUB</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Reprendre</string>
+    <string name="purge_ghosts">Purger le cimetière</string>
+    <string name="sign_out">Déconnexion</string>
+</resources>
