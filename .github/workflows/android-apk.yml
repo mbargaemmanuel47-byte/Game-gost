@@ -27,10 +27,15 @@ jobs:
         with:
           packages: 'platform-tools build-tools;36.0.0 platforms;android-36'
 
-      - name: Accept SDK licenses and install Android 36.1 if available
+      - name: Accept SDK licenses and ensure Android 36.1 platform
         run: |
+          SDK_PATH="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-36.1" || true
+          if [ ! -d "$SDK_PATH/platforms/android-36.1" ] && [ -d "$SDK_PATH/platforms/android-36" ]; then
+            ln -s "$SDK_PATH/platforms/android-36" "$SDK_PATH/platforms/android-36.1"
+          fi
+          ls -la "$SDK_PATH/platforms"
 
       - name: Prepare debug keystore
         run: |
@@ -50,7 +55,12 @@ jobs:
           validate-wrappers: false
 
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
+        run: |
+          gradle :app:assembleDebug \
+            --no-daemon \
+            --max-workers=2 \
+            -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            --stacktrace
 
       - name: Verify APK output
         run: |
@@ -64,14 +74,15 @@ jobs:
           path: GhostLine.apk
 
       - name: Publish direct APK to GitHub Releases
-        uses: softprops/action-gh-release@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: latest
-          target_commitish: ${{ github.sha }}
-          name: Ghost Line APK (Android 7.0+)
-          make_latest: true
-          overwrite_files: true
-          fail_on_unmatched_files: true
-          files: GhostLine.apk
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest GhostLine.apk --clobber
+          else
+            gh release create latest GhostLine.apk \
+              --target "${{ github.sha }}" \
+              --title "Ghost Line APK (Android 7.0+)" \
+              --notes "Build automatique Ghost Line (Android 7.0+)" \
+              --latest
+          fi

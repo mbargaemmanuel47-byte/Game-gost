@@ -2,7 +2,14 @@ package com.example.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +31,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
@@ -45,6 +53,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -66,7 +75,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -77,8 +92,8 @@ import com.example.data.GameMode
 import com.example.data.GhostRecord
 import com.example.data.UiState
 import com.example.data.UserProfile
-import com.example.game.ProceduralLevelGenerator
 import com.example.ui.theme.DeepSurface
+import com.example.ui.theme.GlassSurface
 import com.example.ui.theme.MidnightIndigo
 import com.example.ui.theme.NeonAmber
 import com.example.ui.theme.NeonCoral
@@ -89,6 +104,8 @@ import com.example.ui.theme.OutlineGlow
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.VoidBlack
+import kotlin.math.PI
+import kotlin.math.sin
 
 enum class HubTab {
     PLAY,
@@ -130,14 +147,16 @@ fun MainHubScreen(
     ) {
         val useRail = maxWidth >= 600.dp
 
+        AmbientHubBackdrop(modifier = Modifier.fillMaxSize())
+
         Scaffold(
-            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            containerColor = Color.Transparent,
             snackbarHost = { SnackbarHost(snackbarHostState) },
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             bottomBar = {
                 if (!useRail) {
                     NavigationBar(
-                        containerColor = MidnightIndigo.copy(alpha = 0.96f),
+                        containerColor = MidnightIndigo.copy(alpha = 0.92f),
                         contentColor = TextPrimary
                     ) {
                         HubTab.entries.forEach { tab ->
@@ -152,7 +171,12 @@ fun MainHubScreen(
                                         contentDescription = tabLabel(tab)
                                     )
                                 },
-                                label = { Text(tabLabel(tab)) },
+                                label = {
+                                    Text(
+                                        text = tabLabel(tab),
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = VoidBlack,
                                     selectedTextColor = NeonCyan,
@@ -174,7 +198,7 @@ fun MainHubScreen(
             ) {
                 if (useRail) {
                     NavigationRail(
-                        containerColor = MidnightIndigo.copy(alpha = 0.96f),
+                        containerColor = MidnightIndigo.copy(alpha = 0.92f),
                         contentColor = TextPrimary
                     ) {
                         Spacer(Modifier.height(16.dp))
@@ -189,7 +213,12 @@ fun MainHubScreen(
                                         contentDescription = tabLabel(tab)
                                     )
                                 },
-                                label = { Text(tabLabel(tab)) },
+                                label = {
+                                    Text(
+                                        text = tabLabel(tab),
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                },
                                 colors = NavigationRailItemDefaults.colors(
                                     selectedIconColor = VoidBlack,
                                     selectedTextColor = NeonCyan,
@@ -223,7 +252,7 @@ fun MainHubScreen(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text("Erreur de synchronisation", style = MaterialTheme.typography.titleLarge, color = NeonCoral)
+                                        Text("Oups, erreur réseau", style = MaterialTheme.typography.titleLarge, color = NeonCoral)
                                         Text(hubState.message, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                                     }
                                 }
@@ -273,6 +302,72 @@ fun MainHubScreen(
 }
 
 @Composable
+private fun AmbientHubBackdrop(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "ambient_backdrop")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2.0 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 9000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wave_phase"
+    )
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(NeonCyan.copy(alpha = 0.14f), Color.Transparent),
+                center = Offset(w * 0.2f, h * 0.16f),
+                radius = w * 0.7f
+            ),
+            radius = w * 0.7f,
+            center = Offset(w * 0.2f, h * 0.16f)
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(NeonMagenta.copy(alpha = 0.12f), Color.Transparent),
+                center = Offset(w * 0.85f, h * 0.72f),
+                radius = w * 0.65f
+            ),
+            radius = w * 0.65f,
+            center = Offset(w * 0.85f, h * 0.72f)
+        )
+
+        // Subtle flowing ghost ribbons in background
+        val wave1 = Path()
+        val wave2 = Path()
+        val steps = 28
+        for (i in 0..steps) {
+            val t = i.toFloat() / steps.toFloat()
+            val y = t * h
+            val x1 = w * 0.78f + sin(t * 5f + phase) * 34f
+            val x2 = w * 0.18f + sin(t * 4f - phase * 0.8f) * 26f
+            if (i == 0) {
+                wave1.moveTo(x1, y)
+                wave2.moveTo(x2, y)
+            } else {
+                wave1.lineTo(x1, y)
+                wave2.lineTo(x2, y)
+            }
+        }
+        drawPath(
+            path = wave1,
+            color = NeonCyan.copy(alpha = 0.12f),
+            style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+        drawPath(
+            path = wave2,
+            color = NeonMagenta.copy(alpha = 0.10f),
+            style = Stroke(width = 3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+    }
+}
+
+@Composable
 private fun PlayTabContent(
     profile: UserProfile,
     ghosts: List<GhostRecord>,
@@ -290,11 +385,11 @@ private fun PlayTabContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .widthIn(max = 640.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .widthIn(max = 580.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // Top Neon Header
+            // Minimalist playful header
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -303,12 +398,12 @@ private fun PlayTabContent(
                 ) {
                     Column {
                         Text(
-                            text = "GHOST LINE",
-                            style = MaterialTheme.typography.headlineLarge,
+                            text = "Ghost Line",
+                            style = MaterialTheme.typography.displayMedium,
                             color = NeonCyan
                         )
                         Text(
-                            text = "Pilote : ${profile.displayName}",
+                            text = "Maintiens pour tourner • Relâche pour filer",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -318,88 +413,77 @@ private fun PlayTabContent(
                         onClick = onToggleAudio,
                         modifier = Modifier
                             .size(48.dp)
-                            .testTag("hub_audio_toggle")
+                            .testTag("hub_audio_toggle"),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = GlassSurface,
+                            contentColor = if (audioActive) NeonCyan else TextSecondary
+                        )
                     ) {
                         Icon(
                             imageVector = if (audioActive) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                            contentDescription = "Audio Synthwave",
-                            tint = if (audioActive) NeonCyan else TextSecondary
+                            contentDescription = "Audio Synthwave"
                         )
                     }
                 }
             }
 
-            // Telemetry KPI Strip
+            // Clean airy KPI strip
             item {
-                Row(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    color = GlassSurface,
+                    shape = MaterialTheme.shapes.large,
+                    border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f))
                 ) {
-                    KpiChip(
-                        label = "RECORD INFINI",
-                        value = "${profile.bestEndlessScore}",
-                        accent = NeonCyan,
-                        modifier = Modifier.weight(1f)
-                    )
-                    KpiChip(
-                        label = "SECTEUR MAX",
-                        value = "$maxSector",
-                        accent = NeonMagenta,
-                        modifier = Modifier.weight(1f)
-                    )
-                    KpiChip(
-                        label = "FRÔLEMENTS",
-                        value = "${profile.totalNearMisses}",
-                        accent = NeonAmber,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 14.dp, horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MinimalStat(label = "Record", value = "${profile.bestEndlessScore}", accent = NeonCyan)
+                        MinimalStat(label = "Secteur max", value = "$maxSector", accent = NeonMagenta)
+                        MinimalStat(label = "Frôlements", value = "${profile.totalNearMisses}", accent = NeonAmber)
+                    }
                 }
             }
 
-            // Procedural Sectors Hero Card
+            // Hero Sector Card (Minimal & Tactile)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DeepSurface.copy(alpha = 0.9f)),
-                    border = BorderStroke(1.5.dp, NeonCyan.copy(alpha = 0.7f)),
+                    colors = CardDefaults.cardColors(containerColor = GlassSurface),
+                    border = BorderStroke(1.2.dp, NeonCyan.copy(alpha = 0.45f)),
                     shape = MaterialTheme.shapes.large
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier.padding(22.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(R.string.mode_sector_title).uppercase(),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = NeonCyan
-                                )
-                                Text(
-                                    text = stringResource(R.string.mode_sector_desc),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = TextSecondary
-                                )
-                            }
+                            Text(
+                                text = "Secteurs",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = TextPrimary
+                            )
                             Surface(
                                 color = NeonMagenta.copy(alpha = 0.16f),
-                                border = BorderStroke(1.dp, NeonMagenta.copy(alpha = 0.7f)),
-                                shape = MaterialTheme.shapes.small
+                                shape = CircleShape
                             ) {
                                 Text(
-                                    text = "${sectorGhostCount + 2} SPECTRES",
-                                    style = MaterialTheme.typography.labelSmall,
+                                    text = "${sectorGhostCount + 2} fantômes",
+                                    style = MaterialTheme.typography.labelMedium,
                                     color = NeonMagenta,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                                 )
                             }
                         }
 
-                        // Sector selector chips
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -409,69 +493,64 @@ private fun PlayTabContent(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { onSelectSector(sec) },
+                                    shape = CircleShape,
                                     label = {
                                         Text(
-                                            text = "SECTEUR $sec",
-                                            style = MaterialTheme.typography.labelMedium
+                                            text = "S$sec",
+                                            style = MaterialTheme.typography.labelLarge
                                         )
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = NeonCyan,
                                         selectedLabelColor = VoidBlack,
-                                        containerColor = VoidBlack.copy(alpha = 0.6f),
-                                        labelColor = TextPrimary
+                                        containerColor = VoidBlack.copy(alpha = 0.45f),
+                                        labelColor = TextSecondary
                                     ),
                                     border = FilterChipDefaults.filterChipBorder(
                                         enabled = true,
                                         selected = isSelected,
-                                        borderColor = OutlineGlow,
+                                        borderColor = OutlineGlow.copy(alpha = 0.7f),
                                         selectedBorderColor = NeonCyan
                                     )
                                 )
                             }
                         }
 
-                        val distM = ProceduralLevelGenerator.sectorTargetDistance(selectedSector).toInt()
-                        Text(
-                            text = "Distance cible : ${distM}m • Seed #${selectedSector * 7919 + 1337}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
-
                         Button(
                             onClick = { onLaunchRun(GameMode.SECTOR, selectedSector) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(54.dp)
+                                .height(58.dp)
                                 .testTag("launch_sector_button"),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = NeonCyan,
                                 contentColor = VoidBlack
                             ),
-                            shape = MaterialTheme.shapes.medium
+                            shape = CircleShape
                         ) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "LANCER SECTEUR $selectedSector",
-                                style = MaterialTheme.typography.labelLarge
+                                text = "Jouer Secteur $selectedSector",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
             }
 
-            // Endless Survival Card
+            // Minimalist Endless Survival Card
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DeepSurface.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.5.dp, NeonMagenta.copy(alpha = 0.65f)),
+                    colors = CardDefaults.cardColors(containerColor = GlassSurface),
+                    border = BorderStroke(1.2.dp, NeonMagenta.copy(alpha = 0.45f)),
                     shape = MaterialTheme.shapes.large
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier.padding(22.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -484,66 +563,38 @@ private fun PlayTabContent(
                             ) {
                                 Icon(Icons.Filled.AllInclusive, contentDescription = null, tint = NeonMagenta)
                                 Text(
-                                    text = stringResource(R.string.mode_endless_title).uppercase(),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = NeonMagenta
+                                    text = stringResource(R.string.mode_endless_title),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = TextPrimary
                                 )
                             }
                             Text(
                                 text = "$endlessGhostCount fantômes",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelMedium,
                                 color = NeonViolet
                             )
                         }
-
-                        Text(
-                            text = stringResource(R.string.mode_endless_desc),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
 
                         Button(
                             onClick = { onLaunchRun(GameMode.ENDLESS, 0) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
+                                .height(54.dp)
                                 .testTag("launch_endless_button"),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = NeonMagenta,
                                 contentColor = VoidBlack
                             ),
-                            shape = MaterialTheme.shapes.medium
+                            shape = CircleShape
                         ) {
                             Icon(Icons.Filled.Bolt, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "SURVIE INFINIE",
-                                style = MaterialTheme.typography.labelLarge
+                                text = "Survie Infinie",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
                             )
                         }
-                    }
-                }
-            }
-
-            // Current control reminder pill
-            item {
-                Surface(
-                    color = DeepSurface.copy(alpha = 0.55f),
-                    border = BorderStroke(1.dp, OutlineGlow),
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(Icons.Filled.RocketLaunch, contentDescription = null, tint = NeonAmber, modifier = Modifier.size(20.dp))
-                        Text(
-                            text = "Contrôle actif : ${profile.controlModeEnum().labelFr}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
                     }
                 }
             }
@@ -552,31 +603,22 @@ private fun PlayTabContent(
 }
 
 @Composable
-private fun KpiChip(
+private fun MinimalStat(
     label: String,
     value: String,
-    accent: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
+    accent: Color
 ) {
-    Surface(
-        modifier = modifier,
-        color = DeepSurface.copy(alpha = 0.8f),
-        border = BorderStroke(1.dp, OutlineGlow),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 10.dp, horizontal = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = label, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
-                color = accent,
-                fontWeight = FontWeight.Bold
-            )
-        }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium,
+            color = accent
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = TextSecondary
+        )
     }
 }
 

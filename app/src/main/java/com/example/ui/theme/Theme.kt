@@ -30,10 +30,10 @@ private val GhostLineColorScheme = darkColorScheme(
 )
 
 val GhostLineShapes = Shapes(
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(32.dp)
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(36.dp)
 )
 
 @Composable

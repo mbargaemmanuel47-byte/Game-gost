@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
@@ -61,6 +62,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -96,7 +99,8 @@ import com.example.game.GameEngine
 import com.example.game.Obstacle
 import com.example.game.RunPhase
 import com.example.ui.theme.DeepSurface
-import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.FredokaFontFamily
+import com.example.ui.theme.GlassSurface
 import com.example.ui.theme.MidnightIndigo
 import com.example.ui.theme.NeonAmber
 import com.example.ui.theme.NeonCoral
@@ -321,79 +325,82 @@ fun GameArenaScreen(
             drawArenaFrame(engine, tick, textMeasurer)
         }
 
-        // Top Floating Telemetry HUD
+        // Minimalist Floating Top HUD
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                // Score & Combo pill
-                Surface(
-                    color = DeepSurface.copy(alpha = 0.82f),
-                    border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.45f)),
-                    shape = MaterialTheme.shapes.medium
+                // Airy Floating Score & Combo
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Column {
+                    Column {
+                        Text(
+                            text = if (runConfig.mode == GameMode.SECTOR) {
+                                "Secteur ${runConfig.sectorIndex}"
+                            } else {
+                                "Survie Infinie"
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = NeonMagenta
+                        )
+                        Text(
+                            text = "${engine.score}",
+                            style = MaterialTheme.typography.displayMedium,
+                            color = NeonCyan,
+                            modifier = Modifier.testTag("hud_score_text")
+                        )
+                    }
+                    if (engine.comboMultiplier > 1) {
+                        Surface(
+                            color = NeonAmber.copy(alpha = 0.22f),
+                            border = BorderStroke(1.dp, NeonAmber),
+                            shape = CircleShape
+                        ) {
                             Text(
-                                text = if (runConfig.mode == GameMode.SECTOR) {
-                                    "SECTEUR ${runConfig.sectorIndex}"
-                                } else {
-                                    "SURVIE INFINIE"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = NeonMagenta
+                                text = "x${engine.comboMultiplier}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = NeonAmber,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
-                            Text(
-                                text = "${engine.score}",
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = NeonCyan,
-                                modifier = Modifier.testTag("hud_score_text")
-                            )
-                        }
-                        if (engine.comboMultiplier > 1) {
-                            Surface(
-                                color = NeonAmber.copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, NeonAmber),
-                                shape = MaterialTheme.shapes.small
-                            ) {
-                                Text(
-                                    text = "x${engine.comboMultiplier}",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = NeonAmber,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                )
-                            }
                         }
                     }
                 }
 
-                // Active Ghosts Badge + Audio + Pause Controls (48dp touch targets)
+                // Minimalist Ghost Badge + Circular Audio & Pause Controls (48dp touch targets)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Surface(
-                        color = DeepSurface.copy(alpha = 0.82f),
-                        border = BorderStroke(1.dp, NeonMagenta.copy(alpha = 0.5f)),
-                        shape = MaterialTheme.shapes.small
+                        color = GlassSurface,
+                        shape = CircleShape
                     ) {
-                        Text(
-                            text = "${engine.activeGhosts.size} FANTÔMES",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = NeonMagenta,
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(NeonMagenta)
+                            )
+                            Text(
+                                text = "${engine.activeGhosts.size}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = TextPrimary
+                            )
+                        }
                     }
 
                     IconButton(
@@ -402,7 +409,7 @@ fun GameArenaScreen(
                             .size(48.dp)
                             .testTag("hud_mute_button"),
                         colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = DeepSurface.copy(alpha = 0.82f),
+                            containerColor = GlassSurface,
                             contentColor = if (musicOn || sfxOn) NeonCyan else TextSecondary
                         )
                     ) {
@@ -426,7 +433,7 @@ fun GameArenaScreen(
                             .size(48.dp)
                             .testTag("hud_pause_button"),
                         colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = DeepSurface.copy(alpha = 0.82f),
+                            containerColor = GlassSurface,
                             contentColor = TextPrimary
                         )
                     ) {
@@ -439,20 +446,21 @@ fun GameArenaScreen(
             }
 
             if (runConfig.mode == GameMode.SECTOR) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 val progress = ((-engine.shipY) / engine.targetDistance).coerceIn(0f, 1f)
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(5.dp),
+                        .height(4.dp)
+                        .clip(CircleShape),
                     color = NeonCyan,
-                    trackColor = DeepSurface.copy(alpha = 0.7f)
+                    trackColor = GlassSurface
                 )
             }
         }
 
-        // Ready prompt at launch
+        // Minimalist Ready Prompt Pill
         AnimatedVisibility(
             visible = currentPhase == RunPhase.READY,
             enter = fadeIn(),
@@ -460,35 +468,24 @@ fun GameArenaScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(bottom = 52.dp, start = 24.dp, end = 24.dp)
+                .padding(bottom = 44.dp, start = 24.dp, end = 24.dp)
         ) {
             Surface(
-                color = DeepSurface.copy(alpha = 0.86f),
-                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.65f)),
-                shape = MaterialTheme.shapes.large
+                color = GlassSurface,
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.55f)),
+                shape = CircleShape
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "TOUCHEZ & MAINTENEZ POUR TOURNER",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = NeonCyan,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Relâchez pour filer droit • Esquivez vos propres Trajets Fantômes",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Text(
+                    text = "Maintiens pour tourner • Relâche pour filer",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = NeonCyan,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp)
+                )
             }
         }
 
-        // Pause Overlay
+        // Minimalist Pause Overlay
         AnimatedVisibility(
             visible = currentPhase == RunPhase.PAUSED,
             enter = fadeIn() + scaleIn(initialScale = 0.94f),
@@ -499,19 +496,19 @@ fun GameArenaScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 28.dp)
-                    .widthIn(max = 420.dp),
-                colors = CardDefaults.cardColors(containerColor = MidnightIndigo.copy(alpha = 0.95f)),
-                border = BorderStroke(1.5.dp, NeonCyan),
+                    .widthIn(max = 380.dp),
+                colors = CardDefaults.cardColors(containerColor = MidnightIndigo.copy(alpha = 0.94f)),
+                border = BorderStroke(1.2.dp, NeonCyan.copy(alpha = 0.65f)),
                 shape = MaterialTheme.shapes.large
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "TRAJECTOIRE EN PAUSE",
-                        style = MaterialTheme.typography.headlineMedium,
+                        text = "En pause",
+                        style = MaterialTheme.typography.headlineLarge,
                         color = NeonCyan
                     )
                     Button(
@@ -519,9 +516,10 @@ fun GameArenaScreen(
                             engine.resume()
                             currentPhase = engine.phase
                         },
+                        shape = CircleShape,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(54.dp)
                             .testTag("resume_button"),
                         colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = VoidBlack)
                     ) {
@@ -531,6 +529,7 @@ fun GameArenaScreen(
                     }
                     OutlinedButton(
                         onClick = onExitArena,
+                        shape = CircleShape,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
@@ -545,7 +544,7 @@ fun GameArenaScreen(
             }
         }
 
-        // Crash or Sector Cleared Overlay
+        // Minimalist Crash / Victory Overlay
         AnimatedVisibility(
             visible = currentPhase == RunPhase.CRASHED || currentPhase == RunPhase.SECTOR_CLEARED,
             enter = fadeIn() + scaleIn(initialScale = 0.92f),
@@ -562,35 +561,35 @@ fun GameArenaScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .widthIn(max = 460.dp),
-                colors = CardDefaults.cardColors(containerColor = MidnightIndigo.copy(alpha = 0.93f)),
-                border = BorderStroke(1.5.dp, accent),
+                    .widthIn(max = 420.dp),
+                colors = CardDefaults.cardColors(containerColor = MidnightIndigo.copy(alpha = 0.94f)),
+                border = BorderStroke(1.5.dp, accent.copy(alpha = 0.8f)),
                 shape = MaterialTheme.shapes.large
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     if (isCleared) {
                         Icon(
                             imageVector = Icons.Filled.EmojiEvents,
                             contentDescription = null,
                             tint = NeonAmber,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(42.dp)
                         )
                     }
                     Text(
-                        text = if (isCleared) "SECTEUR ${runConfig.sectorIndex} CONQUIS !" else "SIGNAL ROMPU",
+                        text = if (isCleared) "Secteur ${runConfig.sectorIndex} conquis !" else "Signal rompu !",
                         style = MaterialTheme.typography.headlineLarge,
                         color = accent,
                         textAlign = TextAlign.Center
                     )
                     Text(
                         text = if (isCleared) {
-                            "Portail final franchi avec succès"
+                            "Portail franchi avec style"
                         } else {
-                            "${engine.crashReason.labelFr} — Votre fantôme rejoint le cimetière !"
+                            engine.crashReason.labelFr
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
@@ -601,13 +600,13 @@ fun GameArenaScreen(
                         Surface(
                             color = NeonAmber.copy(alpha = 0.18f),
                             border = BorderStroke(1.dp, NeonAmber),
-                            shape = MaterialTheme.shapes.small
+                            shape = CircleShape
                         ) {
                             Text(
-                                text = "NOUVEAU RECORD PERSONNEL !",
-                                style = MaterialTheme.typography.labelMedium,
+                                text = "Nouveau record !",
+                                style = MaterialTheme.typography.labelLarge,
                                 color = NeonAmber,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
                             )
                         }
                     }
@@ -616,19 +615,20 @@ fun GameArenaScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatBadge("SCORE", "${engine.score}", NeonCyan)
-                        StatBadge("DISTANCE", "${engine.distanceTraveled.toInt()}m", TextPrimary)
-                        StatBadge("FRÔLEMENTS", "${engine.nearMissCount}", NeonAmber)
+                        StatBadge("Score", "${engine.score}", NeonCyan)
+                        StatBadge("Distance", "${engine.distanceTraveled.toInt()}m", TextPrimary)
+                        StatBadge("Frôlements", "${engine.nearMissCount}", NeonAmber)
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     if (isCleared) {
                         Button(
                             onClick = { onRetry(GameMode.SECTOR, runConfig.sectorIndex + 1) },
+                            shape = CircleShape,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(54.dp)
+                                .height(56.dp)
                                 .testTag("next_sector_button"),
                             colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = VoidBlack)
                         ) {
@@ -640,9 +640,10 @@ fun GameArenaScreen(
 
                     Button(
                         onClick = { onRetry(runConfig.mode, runConfig.sectorIndex) },
+                        shape = CircleShape,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp)
+                            .height(56.dp)
                             .testTag("retry_instant_button"),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isCleared) DeepSurface else NeonMagenta,
@@ -656,6 +657,7 @@ fun GameArenaScreen(
 
                     OutlinedButton(
                         onClick = onExitArena,
+                        shape = CircleShape,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
@@ -673,8 +675,8 @@ fun GameArenaScreen(
 @Composable
 private fun StatBadge(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
-        Text(text = value, style = MaterialTheme.typography.titleLarge, color = color, fontWeight = FontWeight.Bold)
+        Text(text = value, style = MaterialTheme.typography.headlineMedium, color = color)
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
     }
 }
 
@@ -698,7 +700,7 @@ private fun DrawScope.drawArenaFrame(
     fun toScreen(wx: Float, wy: Float): Offset =
         Offset(originX + wx * scale, shipScreenY + (wy - engine.shipY) * scale)
 
-    // 1. Deep Synthwave Background + Distant Horizon Glow
+    // 1. Minimalist Deep Space Gradient & Subtle Nebula Bloom
     drawRect(
         brush = Brush.verticalGradient(
             colors = listOf(VoidBlack, MidnightIndigo, VoidBlack)
@@ -708,63 +710,71 @@ private fun DrawScope.drawArenaFrame(
     val leftWallX = originX - GameConstants.WORLD_HALF_WIDTH * scale
     val rightWallX = originX + GameConstants.WORLD_HALF_WIDTH * scale
 
-    // Corridor dark floor
-    drawRect(
-        color = Color(0xFF0A0C1F),
-        topLeft = Offset(leftWallX, 0f),
-        size = Size(rightWallX - leftWallX, h)
+    // Subtle atmospheric radial spotlight centered ahead of the ship
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(NeonViolet.copy(alpha = 0.09f), Color.Transparent),
+            center = Offset(originX, shipScreenY - 120f * scale),
+            radius = arenaPixelWidth * 0.85f
+        ),
+        radius = arenaPixelWidth * 0.85f,
+        center = Offset(originX, shipScreenY - 120f * scale)
     )
 
-    // 2. Scrolling Neon Grid inside the corridor
-    val gridSpacing = 120f
-    val topWorldY = engine.shipY - (shipScreenY / scale) - 120f
-    val botWorldY = engine.shipY + ((h - shipScreenY) / scale) + 120f
-    val firstGridY = (topWorldY / gridSpacing).toInt() * gridSpacing
-    var gy = firstGridY
-    while (gy <= botWorldY) {
-        val sy = shipScreenY + (gy - engine.shipY) * scale
-        drawLine(
-            color = NeonViolet.copy(alpha = 0.14f),
-            start = Offset(leftWallX, sy),
-            end = Offset(rightWallX, sy),
-            strokeWidth = 1.2f
+    // 2. Clean Minimalist Starlight & Subtle Horizon Marks (replaces noisy grid)
+    val starStep = 140f
+    val topWorldY = engine.shipY - (shipScreenY / scale) - 140f
+    val botWorldY = engine.shipY + ((h - shipScreenY) / scale) + 140f
+    val firstStarRow = (topWorldY / starStep).toInt()
+    val lastStarRow = (botWorldY / starStep).toInt()
+    for (row in firstStarRow..lastStarRow) {
+        val wy = row * starStep
+        val sy = shipScreenY + (wy - engine.shipY) * scale
+        // Two deterministic drifting starlight dots per band
+        val hash1 = ((row * 73856093) xor 19349663)
+        val wx1 = (((hash1 and 0xFF) / 255f) * 2f - 1f) * (GameConstants.WORLD_HALF_WIDTH - 24f)
+        val sx1 = originX + wx1 * scale
+        val starAlpha = if (row % 2 == 0) 0.28f else 0.16f
+        val starColor = if (row % 3 == 0) NeonCyan else NeonViolet
+        drawCircle(
+            color = starColor.copy(alpha = starAlpha),
+            radius = if (row % 4 == 0) 2.6f * scale else 1.6f * scale,
+            center = Offset(sx1, sy)
         )
-        gy += gridSpacing
-    }
-    for (gx in -200..200 step 100) {
-        val sx = originX + gx.toFloat() * scale
-        drawLine(
-            color = NeonCyan.copy(alpha = 0.08f),
-            start = Offset(sx, 0f),
-            end = Offset(sx, h),
-            strokeWidth = 1f
-        )
+        if (row % 2 == 0) {
+            drawLine(
+                color = Color.White.copy(alpha = 0.045f),
+                start = Offset(leftWallX + 12f * scale, sy),
+                end = Offset(rightWallX - 12f * scale, sy),
+                strokeWidth = 1f
+            )
+        }
     }
 
-    // 3. Corridor Laser Boundary Rails
+    // 3. Sleek Luminous Corridor Laser Rails
     drawLine(
-        color = NeonMagenta.copy(alpha = 0.28f),
+        color = NeonMagenta.copy(alpha = 0.22f),
         start = Offset(leftWallX, 0f),
         end = Offset(leftWallX, h),
-        strokeWidth = 10f * scale
+        strokeWidth = 12f * scale
     )
     drawLine(
-        color = NeonMagenta,
+        color = NeonMagenta.copy(alpha = 0.9f),
         start = Offset(leftWallX, 0f),
         end = Offset(leftWallX, h),
-        strokeWidth = 2.6f * scale
+        strokeWidth = 2.4f * scale
     )
     drawLine(
-        color = NeonMagenta.copy(alpha = 0.28f),
+        color = NeonMagenta.copy(alpha = 0.22f),
         start = Offset(rightWallX, 0f),
         end = Offset(rightWallX, h),
-        strokeWidth = 10f * scale
+        strokeWidth = 12f * scale
     )
     drawLine(
-        color = NeonMagenta,
+        color = NeonMagenta.copy(alpha = 0.9f),
         start = Offset(rightWallX, 0f),
         end = Offset(rightWallX, h),
-        strokeWidth = 2.6f * scale
+        strokeWidth = 2.4f * scale
     )
 
     // 4. Sector Finish Portal (in SECTOR mode)
@@ -775,22 +785,23 @@ private fun DrawScope.drawArenaFrame(
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(Color.Transparent, NeonLime.copy(alpha = 0.35f), Color.Transparent),
-                    startY = pScreenY - 26f * scale,
-                    endY = pScreenY + 26f * scale
+                    startY = pScreenY - 30f * scale,
+                    endY = pScreenY + 30f * scale
                 ),
-                topLeft = Offset(leftWallX, pScreenY - 26f * scale),
-                size = Size(rightWallX - leftWallX, 52f * scale)
+                topLeft = Offset(leftWallX, pScreenY - 30f * scale),
+                size = Size(rightWallX - leftWallX, 60f * scale)
             )
             drawLine(
                 color = NeonLime,
                 start = Offset(leftWallX, pScreenY),
                 end = Offset(rightWallX, pScreenY),
-                strokeWidth = 4f * scale
+                strokeWidth = 4.5f * scale,
+                cap = StrokeCap.Round
             )
         }
     }
 
-    // 5. Ghost Lines & Crash Markers ("Cimetière d'erreurs")
+    // 5. Charming Spectral Ghost Lines & Phantom Orbs ("Cimetière d'erreurs")
     for (ghost in engine.activeGhosts) {
         val gColor = ghostPaletteColor(ghost.colorIndex)
         val pts = ghost.points
@@ -812,14 +823,14 @@ private fun DrawScope.drawArenaFrame(
             if (started) {
                 drawPath(
                     path = path,
-                    color = gColor.copy(alpha = if (ghost.isSpectre) 0.10f else 0.16f),
-                    style = Stroke(width = 13f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    color = gColor.copy(alpha = if (ghost.isSpectre) 0.08f else 0.16f),
+                    style = Stroke(width = 14f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
                 drawPath(
                     path = path,
-                    color = gColor.copy(alpha = if (ghost.isSpectre) 0.42f else 0.62f),
+                    color = gColor.copy(alpha = if (ghost.isSpectre) 0.42f else 0.65f),
                     style = Stroke(
-                        width = 3.2f * scale,
+                        width = 3.4f * scale,
                         cap = StrokeCap.Round,
                         join = StrokeJoin.Round,
                         pathEffect = if (ghost.isSpectre) PathEffect.dashPathEffect(floatArrayOf(14f, 10f)) else null
@@ -828,34 +839,52 @@ private fun DrawScope.drawArenaFrame(
             }
         }
 
-        // Animated spectral cursor racing along the ghost path
+        // Cute glowing phantom orb gliding smoothly along the ghost path
         val cursor = ghost.cursorAt(engine.distanceTraveled)
         if (cursor != null && cursor.y in topWorldY..botWorldY) {
             val sc = toScreen(cursor.x, cursor.y)
             drawCircle(
-                color = gColor.copy(alpha = 0.25f),
-                radius = 12f * scale,
+                color = gColor.copy(alpha = 0.22f),
+                radius = 15f * scale,
+                center = sc
+            )
+            drawCircle(
+                color = gColor,
+                radius = 7f * scale,
+                center = sc
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.9f),
+                radius = 3f * scale,
+                center = sc
+            )
+        }
+
+        // Soft pulsing ring marker at ghost death spot
+        val cp = ghost.crashPoint
+        if (cp != null && cp.y in topWorldY..botWorldY) {
+            val sc = toScreen(cp.x, cp.y)
+            val pulseRing = 12f + sin(engine.elapsedSec * 5f + ghost.colorIndex) * 2.5f
+            drawCircle(
+                color = gColor.copy(alpha = 0.16f),
+                radius = pulseRing * scale,
                 center = sc
             )
             drawCircle(
                 color = gColor.copy(alpha = 0.85f),
-                radius = 5f * scale,
+                radius = 7.5f * scale,
+                center = sc,
+                style = Stroke(width = 2.4f * scale)
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.8f),
+                radius = 2.4f * scale,
                 center = sc
             )
         }
-
-        // Crash X marker at ghost death spot
-        val cp = ghost.crashPoint
-        if (cp != null && cp.y in topWorldY..botWorldY) {
-            val sc = toScreen(cp.x, cp.y)
-            val r = 10f * scale
-            drawCircle(color = gColor.copy(alpha = 0.20f), radius = 15f * scale, center = sc)
-            drawLine(gColor, Offset(sc.x - r, sc.y - r), Offset(sc.x + r, sc.y + r), strokeWidth = 3f * scale, cap = StrokeCap.Round)
-            drawLine(gColor, Offset(sc.x + r, sc.y - r), Offset(sc.x - r, sc.y + r), strokeWidth = 3f * scale, cap = StrokeCap.Round)
-        }
     }
 
-    // 6. Procedural Obstacles
+    // 6. Sleek Rounded Neon Capsule Obstacles & Crystalline Prisms
     for (obs in engine.obstacles) {
         if (obs.y < topWorldY - 120f || obs.y > botWorldY + 120f) continue
         when (obs) {
@@ -867,18 +896,18 @@ private fun DrawScope.drawArenaFrame(
                 if (leftEnd > -GameConstants.WORLD_HALF_WIDTH) {
                     val pLeft = toScreen(-GameConstants.WORLD_HALF_WIDTH, topY)
                     val wPx = (leftEnd + GameConstants.WORLD_HALF_WIDTH) * scale
-                    drawNeonBar(pLeft, wPx, hPx, NeonCoral)
+                    drawNeonCapsule(pLeft, wPx, hPx, NeonCoral)
                 }
                 if (rightStart < GameConstants.WORLD_HALF_WIDTH) {
                     val pRight = toScreen(rightStart, topY)
                     val wPx = (GameConstants.WORLD_HALF_WIDTH - rightStart) * scale
-                    drawNeonBar(pRight, wPx, hPx, NeonCoral)
+                    drawNeonCapsule(pRight, wPx, hPx, NeonCoral)
                 }
             }
             is Obstacle.MovingSweeper -> {
                 val cx = obs.currentCenterX(engine.elapsedSec)
                 val pStart = toScreen(cx - obs.halfLength, obs.y - obs.thickness * 0.5f)
-                drawNeonBar(pStart, obs.halfLength * 2f * scale, obs.thickness * scale, NeonAmber)
+                drawNeonCapsule(pStart, obs.halfLength * 2f * scale, obs.thickness * scale, NeonAmber)
             }
             is Obstacle.DiamondMonolith -> {
                 val center = toScreen(obs.centerX, obs.y)
@@ -890,38 +919,47 @@ private fun DrawScope.drawArenaFrame(
                     lineTo(center.x - r, center.y)
                     close()
                 }
-                drawPath(diamond, color = NeonViolet.copy(alpha = 0.25f))
-                drawPath(diamond, color = NeonCoral.copy(alpha = 0.35f), style = Stroke(width = 10f * scale))
-                drawPath(diamond, color = NeonCoral, style = Stroke(width = 3f * scale))
+                val innerR = r * 0.52f
+                val innerDiamond = Path().apply {
+                    moveTo(center.x, center.y - innerR)
+                    lineTo(center.x + innerR, center.y)
+                    lineTo(center.x, center.y + innerR)
+                    lineTo(center.x - innerR, center.y)
+                    close()
+                }
+                drawPath(diamond, color = NeonViolet.copy(alpha = 0.24f))
+                drawPath(diamond, color = NeonCoral.copy(alpha = 0.35f), style = Stroke(width = 11f * scale, join = StrokeJoin.Round))
+                drawPath(diamond, color = NeonCoral, style = Stroke(width = 3f * scale, join = StrokeJoin.Round))
+                drawPath(innerDiamond, color = Color.White.copy(alpha = 0.7f), style = Stroke(width = 1.8f * scale, join = StrokeJoin.Round))
             }
         }
     }
 
-    // 7. Collectible Energy Orbs
-    val pulse = 1f + sin(engine.elapsedSec * 7f) * 0.15f
+    // 7. Collectible Energy Orbs with Orbiting Ring
+    val pulse = 1f + sin(engine.elapsedSec * 7f) * 0.14f
     for (orb in engine.orbs) {
         if (engine.collectedOrbIds.contains(orb.id)) continue
         if (orb.y < topWorldY || orb.y > botWorldY) continue
         val center = toScreen(orb.x, orb.y)
         drawCircle(
-            color = NeonCyan.copy(alpha = 0.24f),
-            radius = orb.radius * 1.45f * pulse * scale,
+            color = NeonCyan.copy(alpha = 0.20f),
+            radius = orb.radius * 1.65f * pulse * scale,
             center = center
         )
         drawCircle(
-            color = NeonCyan,
-            radius = orb.radius * 0.72f * pulse * scale,
+            color = NeonCyan.copy(alpha = 0.85f),
+            radius = orb.radius * 0.82f * pulse * scale,
             center = center,
-            style = Stroke(width = 2.8f * scale)
+            style = Stroke(width = 2.6f * scale)
         )
         drawCircle(
             color = Color.White,
-            radius = orb.radius * 0.32f * scale,
+            radius = orb.radius * 0.38f * scale,
             center = center
         )
     }
 
-    // 8. Player Trail
+    // 8. Luminous Player Ribbon Trail
     if (engine.playerTrail.size >= 2) {
         val playerPath = Path()
         var started = false
@@ -940,13 +978,18 @@ private fun DrawScope.drawArenaFrame(
             playerPath.lineTo(shipPos.x, shipPos.y)
             drawPath(
                 path = playerPath,
-                color = NeonCyan.copy(alpha = 0.28f),
-                style = Stroke(width = 16f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                color = NeonCyan.copy(alpha = 0.25f),
+                style = Stroke(width = 18f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
             drawPath(
                 path = playerPath,
                 color = NeonCyan,
-                style = Stroke(width = 4.6f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                style = Stroke(width = 5f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+            drawPath(
+                path = playerPath,
+                color = Color.White.copy(alpha = 0.75f),
+                style = Stroke(width = 1.8f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
         }
     }
@@ -966,42 +1009,50 @@ private fun DrawScope.drawArenaFrame(
         )
     }
 
-    // 10. Player Geometric Neon Dart + Directional Preview Arc
+    // 10. Sleek Luminous Origami Chevron Ship + Turn Halo
     val shipCenter = toScreen(engine.shipX, engine.shipY)
     if (engine.phase != RunPhase.CRASHED) {
-        // Next turn cue arc in ALTERNATING mode
-        if (engine.controlMode == ControlMode.ALTERNATING && engine.activeTurnSign == 0f) {
+        if (engine.activeTurnSign != 0f) {
+            drawCircle(
+                color = NeonMagenta.copy(alpha = 0.25f),
+                radius = 24f * scale,
+                center = shipCenter,
+                style = Stroke(width = 2.2f * scale)
+            )
+        } else if (engine.controlMode == ControlMode.ALTERNATING) {
             val cueAngle = engine.headingRad + engine.nextTurnSign * 0.65f
             val cueEnd = Offset(
-                shipCenter.x + cos(cueAngle) * 28f * scale,
-                shipCenter.y + sin(cueAngle) * 28f * scale
+                shipCenter.x + cos(cueAngle) * 26f * scale,
+                shipCenter.y + sin(cueAngle) * 26f * scale
             )
             drawLine(
-                color = NeonCyan.copy(alpha = 0.45f),
+                color = NeonCyan.copy(alpha = 0.35f),
                 start = shipCenter,
                 end = cueEnd,
                 strokeWidth = 2f * scale,
+                cap = StrokeCap.Round,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f))
             )
         }
 
         val deg = Math.toDegrees(engine.headingRad.toDouble()).toFloat() + 90f
         rotate(degrees = deg, pivot = shipCenter) {
-            val r = 15f * scale
+            val r = 15.5f * scale
             val dart = Path().apply {
-                moveTo(shipCenter.x, shipCenter.y - r * 1.25f)
-                lineTo(shipCenter.x + r * 0.85f, shipCenter.y + r * 0.9f)
-                lineTo(shipCenter.x, shipCenter.y + r * 0.45f)
-                lineTo(shipCenter.x - r * 0.85f, shipCenter.y + r * 0.9f)
+                moveTo(shipCenter.x, shipCenter.y - r * 1.28f)
+                lineTo(shipCenter.x + r * 0.88f, shipCenter.y + r * 0.86f)
+                lineTo(shipCenter.x, shipCenter.y + r * 0.42f)
+                lineTo(shipCenter.x - r * 0.88f, shipCenter.y + r * 0.86f)
                 close()
             }
-            drawPath(dart, color = NeonCyan.copy(alpha = 0.35f), style = Stroke(width = 8f * scale))
+            drawPath(dart, color = NeonCyan.copy(alpha = 0.32f), style = Stroke(width = 10f * scale, join = StrokeJoin.Round))
             drawPath(dart, color = NeonCyan)
-            drawPath(dart, color = Color.White, style = Stroke(width = 2f * scale))
+            drawPath(dart, color = Color.White, style = Stroke(width = 2.2f * scale, join = StrokeJoin.Round))
+            drawCircle(color = Color.White, radius = 3.2f * scale, center = shipCenter)
         }
     }
 
-    // 11. Floating Near-Miss / Orb Popups
+    // 11. Playful Floating Popups in Fredoka
     for (pop in engine.popups) {
         val alpha = (pop.life / pop.maxLife).coerceIn(0f, 1f)
         val pos = toScreen(pop.x, pop.y)
@@ -1011,9 +1062,9 @@ private fun DrawScope.drawArenaFrame(
             text = pop.text,
             topLeft = Offset(pos.x - 48f, pos.y),
             style = TextStyle(
-                fontFamily = JetBrainsMonoFontFamily,
+                fontFamily = FredokaFontFamily,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
+                fontSize = 15.sp,
                 color = pColor.copy(alpha = alpha)
             )
         )
@@ -1022,24 +1073,29 @@ private fun DrawScope.drawArenaFrame(
     // 12. Crash / Clear Chromatic Flash
     if (engine.flashAlpha > 0.01f) {
         val flashColor = if (engine.phase == RunPhase.SECTOR_CLEARED) NeonCyan else NeonMagenta
-        drawRect(color = flashColor.copy(alpha = engine.flashAlpha * 0.35f))
+        drawRect(color = flashColor.copy(alpha = engine.flashAlpha * 0.32f))
     }
 }
 
-private fun DrawScope.drawNeonBar(topLeft: Offset, widthPx: Float, heightPx: Float, color: Color) {
-    drawRect(
-        color = color.copy(alpha = 0.25f),
-        topLeft = Offset(topLeft.x, topLeft.y - heightPx * 0.35f),
-        size = Size(widthPx, heightPx * 1.7f)
+private fun DrawScope.drawNeonCapsule(topLeft: Offset, widthPx: Float, heightPx: Float, color: Color) {
+    val radius = CornerRadius(heightPx * 0.5f, heightPx * 0.5f)
+    val glowRadius = CornerRadius(heightPx * 0.85f, heightPx * 0.85f)
+    drawRoundRect(
+        color = color.copy(alpha = 0.24f),
+        topLeft = Offset(topLeft.x - 2f, topLeft.y - heightPx * 0.35f),
+        size = Size(widthPx + 4f, heightPx * 1.7f),
+        cornerRadius = glowRadius
     )
-    drawRect(
+    drawRoundRect(
         color = color,
         topLeft = topLeft,
-        size = Size(widthPx, heightPx)
+        size = Size(widthPx, heightPx),
+        cornerRadius = radius
     )
-    drawRect(
-        color = Color.White.copy(alpha = 0.7f),
-        topLeft = Offset(topLeft.x, topLeft.y + heightPx * 0.3f),
-        size = Size(widthPx, heightPx * 0.4f)
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.72f),
+        topLeft = Offset(topLeft.x + heightPx * 0.2f, topLeft.y + heightPx * 0.3f),
+        size = Size((widthPx - heightPx * 0.4f).coerceAtLeast(2f), heightPx * 0.38f),
+        cornerRadius = CornerRadius(heightPx * 0.2f, heightPx * 0.2f)
     )
 }

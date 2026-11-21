@@ -49,7 +49,7 @@ import com.example.R
 import com.example.data.GameMode
 import com.example.data.GhostRecord
 import com.example.data.RunLog
-import com.example.ui.theme.DeepSurface
+import com.example.ui.theme.GlassSurface
 import com.example.ui.theme.NeonAmber
 import com.example.ui.theme.NeonCoral
 import com.example.ui.theme.NeonCyan
@@ -127,8 +127,8 @@ fun GraveyardTabContent(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = DeepSurface.copy(alpha = 0.7f)),
-                        border = BorderStroke(1.dp, OutlineGlow)
+                        colors = CardDefaults.cardColors(containerColor = GlassSurface),
+                        border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f))
                     ) {
                         Column(
                             modifier = Modifier
@@ -218,7 +218,7 @@ private fun GhostTrajectoryCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("ghost_card_${ghost.id}"),
-        colors = CardDefaults.cardColors(containerColor = DeepSurface.copy(alpha = 0.85f)),
+        colors = CardDefaults.cardColors(containerColor = GlassSurface),
         border = BorderStroke(1.dp, trailColor.copy(alpha = 0.45f)),
         shape = MaterialTheme.shapes.medium
     ) {
@@ -289,8 +289,8 @@ private fun RunHistoryCard(run: RunLog) {
     val accent = if (run.cleared) NeonLime else NeonMagenta
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = DeepSurface.copy(alpha = 0.65f)),
-        border = BorderStroke(1.dp, OutlineGlow),
+        colors = CardDefaults.cardColors(containerColor = GlassSurface),
+        border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f)),
         shape = MaterialTheme.shapes.medium
     ) {
         Row(

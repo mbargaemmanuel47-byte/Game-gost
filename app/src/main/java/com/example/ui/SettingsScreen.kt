@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import com.example.data.ControlMode
 import com.example.data.UserProfile
-import com.example.ui.theme.DeepSurface
+import com.example.ui.theme.GlassSurface
 import com.example.ui.theme.NeonCoral
 import com.example.ui.theme.NeonCyan
 import com.example.ui.theme.NeonLime
@@ -100,8 +100,8 @@ fun SettingsTabContent(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DeepSurface.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, OutlineGlow),
+                    colors = CardDefaults.cardColors(containerColor = GlassSurface),
+                    border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f)),
                     shape = MaterialTheme.shapes.large
                 ) {
                     Column(
@@ -173,8 +173,8 @@ fun SettingsTabContent(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DeepSurface.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, OutlineGlow),
+                    colors = CardDefaults.cardColors(containerColor = GlassSurface),
+                    border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f)),
                     shape = MaterialTheme.shapes.large
                 ) {
                     Column(
@@ -225,8 +225,8 @@ fun SettingsTabContent(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = DeepSurface.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, OutlineGlow),
+                    colors = CardDefaults.cardColors(containerColor = GlassSurface),
+                    border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f)),
                     shape = MaterialTheme.shapes.large
                 ) {
                     Column(
