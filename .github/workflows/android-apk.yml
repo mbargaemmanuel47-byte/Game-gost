@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,8 +36,18 @@ jobs:
       - name: Build Debug APK
         run: gradle :app:assembleDebug
 
+      - name: Prepare direct APK filename
+        run: cp app/build/outputs/apk/debug/app-debug.apk GhostLine.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ghost-line-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish direct APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Ghost Line APK (Android 7.0+)
+          files: GhostLine.apk
