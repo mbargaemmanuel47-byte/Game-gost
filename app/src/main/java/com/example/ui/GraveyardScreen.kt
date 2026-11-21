@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,14 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -49,7 +50,7 @@ import com.example.R
 import com.example.data.GameMode
 import com.example.data.GhostRecord
 import com.example.data.RunLog
-import com.example.ui.theme.GlassSurface
+import com.example.ui.components.SoftGlassCard
 import com.example.ui.theme.NeonAmber
 import com.example.ui.theme.NeonCoral
 import com.example.ui.theme.NeonCyan
@@ -83,9 +84,9 @@ fun GraveyardTabContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .widthIn(max = 640.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .widthIn(max = 600.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
                 Row(
@@ -93,14 +94,14 @@ fun GraveyardTabContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "CIMETIÈRE D'ERREURS",
-                            style = MaterialTheme.typography.headlineMedium,
+                            text = "Cimetière d'erreurs",
+                            style = MaterialTheme.typography.headlineLarge,
                             color = NeonMagenta
                         )
                         Text(
-                            text = "${ghosts.size} trajectoires fantômes actives",
+                            text = "${ghosts.size} tracés fantômes enregistrés",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -109,15 +110,16 @@ fun GraveyardTabContent(
                     if (ghosts.isNotEmpty()) {
                         OutlinedButton(
                             onClick = onPurgeAllGhosts,
+                            shape = CircleShape,
                             modifier = Modifier
                                 .height(48.dp)
                                 .testTag("purge_ghosts_button"),
-                            border = BorderStroke(1.dp, NeonCoral.copy(alpha = 0.65f)),
+                            border = BorderStroke(1.dp, NeonCoral.copy(alpha = 0.55f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonCoral)
                         ) {
                             Icon(Icons.Filled.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.purge_ghosts), style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(R.string.purge_ghosts), style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -125,31 +127,30 @@ fun GraveyardTabContent(
 
             if (ghosts.isEmpty()) {
                 item {
-                    Card(
+                    SoftGlassCard(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = GlassSurface),
-                        border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f))
+                        accentBorder = NeonMagenta.copy(alpha = 0.35f)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(24.dp),
+                                .padding(26.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.AutoAwesome,
                                 contentDescription = null,
                                 tint = NeonMagenta,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(38.dp)
                             )
                             Text(
-                                text = "Aucun fantôme enregistré",
-                                style = MaterialTheme.typography.titleMedium,
+                                text = "Aucun fantôme pour le moment",
+                                style = MaterialTheme.typography.titleLarge,
                                 color = TextPrimary
                             )
                             Text(
-                                text = "Chaque chute laisse votre trajet en spectre lumineux sur le terrain. Lancez une partie pour peupler le cimetière.",
+                                text = "Chaque envol laisse un écho lumineux de votre trajectoire. Jouez une partie pour les voir apparaître ici !",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = TextSecondary,
                                 textAlign = TextAlign.Center
@@ -180,8 +181,8 @@ fun GraveyardTabContent(
                 ) {
                     Icon(Icons.Filled.History, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(20.dp))
                     Text(
-                        text = "DERNIERS VOLS",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Derniers vols",
+                        style = MaterialTheme.typography.titleLarge,
                         color = NeonCyan
                     )
                 }
@@ -213,14 +214,14 @@ private fun GhostTrajectoryCard(
     val points = remember(ghost.packedPoints) { ghost.decodePoints() }
     val trailColor = graveyardColor(ghost.colorIndex)
 
-    Card(
-        onClick = onReplay,
+    SoftGlassCard(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(onClick = onReplay)
             .testTag("ghost_card_${ghost.id}"),
-        colors = CardDefaults.cardColors(containerColor = GlassSurface),
-        border = BorderStroke(1.dp, trailColor.copy(alpha = 0.45f)),
-        shape = MaterialTheme.shapes.medium
+        shape = MaterialTheme.shapes.medium,
+        accentBorder = trailColor.copy(alpha = 0.42f)
     ) {
         Row(
             modifier = Modifier
@@ -229,14 +230,13 @@ private fun GhostTrajectoryCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Vector mini-map preview of the ghost trajectory
             Surface(
-                color = VoidBlack,
+                color = VoidBlack.copy(alpha = 0.72f),
                 border = BorderStroke(1.dp, OutlineGlow),
                 shape = MaterialTheme.shapes.small,
                 modifier = Modifier.size(width = 64.dp, height = 76.dp)
             ) {
-                Canvas(modifier = Modifier.fillMaxSize().padding(6.dp)) {
+                Canvas(modifier = Modifier.fillMaxSize().padding(7.dp)) {
                     if (points.size >= 2) {
                         val minY = points.minOf { it.y }
                         val maxY = points.maxOf { it.y }
@@ -249,13 +249,18 @@ private fun GhostTrajectoryCard(
                         }
                         drawPath(
                             path = path,
+                            color = trailColor.copy(alpha = 0.3f),
+                            style = Stroke(width = 6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                        )
+                        drawPath(
+                            path = path,
                             color = trailColor,
-                            style = Stroke(width = 2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                            style = Stroke(width = 2.6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                         )
                         val last = points.last()
                         val lx = ((last.x + 300f) / 600f).coerceIn(0f, 1f) * size.width
                         val ly = ((last.y - minY) / spanY).coerceIn(0f, 1f) * size.height
-                        drawCircle(color = NeonCoral, radius = 4f, center = Offset(lx, ly))
+                        drawCircle(color = NeonCoral, radius = 4.2f, center = Offset(lx, ly))
                     }
                 }
             }
@@ -265,18 +270,18 @@ private fun GhostTrajectoryCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = if (ghost.sectorIndex <= 0L) "SURVIE INFINIE" else "SECTEUR ${ghost.sectorIndex}",
-                    style = MaterialTheme.typography.labelLarge,
+                    text = if (ghost.sectorIndex <= 0L) "Survie Infinie" else "Secteur ${ghost.sectorIndex}",
+                    style = MaterialTheme.typography.titleMedium,
                     color = trailColor
                 )
                 Text(
-                    text = "Score ${ghost.score} • Distance ${ghost.distance}m",
+                    text = "Score ${ghost.score} • ${ghost.distance} m",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextPrimary
                 )
                 Text(
-                    text = "Appuyez pour affronter ce fantôme",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "Toucher pour défier ce fantôme",
+                    style = MaterialTheme.typography.labelMedium,
                     color = TextSecondary
                 )
             }
@@ -287,16 +292,15 @@ private fun GhostTrajectoryCard(
 @Composable
 private fun RunHistoryCard(run: RunLog) {
     val accent = if (run.cleared) NeonLime else NeonMagenta
-    Card(
+    SoftGlassCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = GlassSurface),
-        border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f)),
-        shape = MaterialTheme.shapes.medium
+        shape = MaterialTheme.shapes.medium,
+        accentBorder = OutlineGlow
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -305,7 +309,7 @@ private fun RunHistoryCard(run: RunLog) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (run.cleared) {
-                    Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = NeonLime, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Filled.EmojiEvents, contentDescription = null, tint = NeonLime, modifier = Modifier.size(22.dp))
                 }
                 Column {
                     Text(
@@ -315,7 +319,7 @@ private fun RunHistoryCard(run: RunLog) {
                     )
                     Text(
                         text = "${run.nearMisses} frôlements",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = TextSecondary
                     )
                 }
@@ -329,8 +333,8 @@ private fun RunHistoryCard(run: RunLog) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = if (run.cleared) "CONQUIS" else "CRASH",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = if (run.cleared) "Conquis" else "Terminé",
+                    style = MaterialTheme.typography.labelMedium,
                     color = accent
                 )
             }

@@ -20,13 +20,13 @@ import java.util.UUID
 
 class GhostLineRepository(
     private val dao: GhostLineDao,
-    private val db: FirebaseFirestore,
-    private val auth: FirebaseAuth = Firebase.auth
+    private val db: FirebaseFirestore? = null,
+    private val auth: FirebaseAuth? = null
 ) {
-    private fun activeUidOrNull(): String? = auth.currentUser?.uid?.takeIf { it.isNotBlank() }
+    private fun activeUidOrNull(): String? = auth?.currentUser?.uid?.takeIf { it.isNotBlank() }
 
     fun observeUserProfile(userId: String?): Flow<UserProfile?> = flow {
-        if (userId.isNullOrBlank()) {
+        if (userId.isNullOrBlank() || db == null) {
             emitAll(dao.observeProfile().map { it?.toUserProfile("local") })
         } else {
             emitAll(
@@ -44,7 +44,7 @@ class GhostLineRepository(
                             .filterIsInstance<FirebaseFirestoreException>()
                             .firstOrNull()
                         if (firestoreError == null && error is CancellationException) throw error
-                        if (auth.currentUser?.uid == userId) {
+                        if (auth?.currentUser?.uid == userId) {
                             handleFirestoreError(firestoreError ?: error, OperationType.GET, "users/$userId")
                         }
                         throw error
@@ -54,7 +54,7 @@ class GhostLineRepository(
     }
 
     fun observeAllGhosts(userId: String?): Flow<List<GhostRecord>> = flow {
-        if (userId.isNullOrBlank()) {
+        if (userId.isNullOrBlank() || db == null) {
             emitAll(
                 dao.observeAllGhosts().map { list ->
                     list.map { it.toGhostRecord("local") }
@@ -75,7 +75,7 @@ class GhostLineRepository(
                             .filterIsInstance<FirebaseFirestoreException>()
                             .firstOrNull()
                         if (firestoreError == null && error is CancellationException) throw error
-                        if (auth.currentUser?.uid == userId) {
+                        if (auth?.currentUser?.uid == userId) {
                             handleFirestoreError(firestoreError ?: error, OperationType.LIST, "users/$userId/ghosts")
                         }
                         throw error
@@ -85,7 +85,7 @@ class GhostLineRepository(
     }
 
     fun observeRecentRuns(userId: String?): Flow<List<RunLog>> = flow {
-        if (userId.isNullOrBlank()) {
+        if (userId.isNullOrBlank() || db == null) {
             emitAll(
                 dao.observeRecentRuns().map { list ->
                     list.map { it.toRunLog("local") }
@@ -106,7 +106,7 @@ class GhostLineRepository(
                             .filterIsInstance<FirebaseFirestoreException>()
                             .firstOrNull()
                         if (firestoreError == null && error is CancellationException) throw error
-                        if (auth.currentUser?.uid == userId) {
+                        if (auth?.currentUser?.uid == userId) {
                             handleFirestoreError(firestoreError ?: error, OperationType.LIST, "users/$userId/runs")
                         }
                         throw error
@@ -126,7 +126,7 @@ class GhostLineRepository(
                 )
             }
 
-            if (!userId.isNullOrBlank() && activeUidOrNull() == userId) {
+            if (!userId.isNullOrBlank() && db != null && activeUidOrNull() == userId) {
                 val docRef = db.collection("users").document(userId)
                 val existing = docRef.get().await()
                 if (!existing.exists()) {
@@ -178,7 +178,7 @@ class GhostLineRepository(
                 )
             )
 
-            if (!userId.isNullOrBlank() && activeUidOrNull() == userId) {
+            if (!userId.isNullOrBlank() && db != null && activeUidOrNull() == userId) {
                 db.collection("users").document(userId)
                     .update(
                         mapOf(
@@ -283,7 +283,7 @@ class GhostLineRepository(
             }
 
             // Optional cloud sync if signed in with Google
-            if (!userId.isNullOrBlank() && activeUidOrNull() == userId) {
+            if (!userId.isNullOrBlank() && db != null && activeUidOrNull() == userId) {
                 val runRef = db.collection("users").document(userId).collection("runs").document()
                 val runPayload = mapOf(
                     "userId" to userId,
@@ -354,7 +354,7 @@ class GhostLineRepository(
         return try {
             dao.deleteGhostsByIds(ghostIds)
 
-            if (!userId.isNullOrBlank() && activeUidOrNull() == userId) {
+            if (!userId.isNullOrBlank() && db != null && activeUidOrNull() == userId) {
                 for (ghostId in ghostIds) {
                     if (ghostId.isNotBlank()) {
                         db.collection("users").document(userId)

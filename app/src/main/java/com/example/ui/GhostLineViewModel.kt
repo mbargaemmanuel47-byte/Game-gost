@@ -55,7 +55,11 @@ class GhostLineViewModel(
 
     init {
         viewModelScope.launch {
-            val displayName = if (isCloudLinked) Firebase.auth.currentUser?.displayName else "Pilote Néon"
+            val displayName = if (isCloudLinked) {
+                runCatching { Firebase.auth.currentUser?.displayName }.getOrNull() ?: "Pilote Néon"
+            } else {
+                "Pilote Néon"
+            }
             repository.ensureUserProfile(currentUserId, displayName)
                 .onFailure { err ->
                     _statusBanner.value = err.localizedMessage ?: "Impossible d'initialiser le profil."
@@ -71,7 +75,7 @@ class GhostLineViewModel(
         val safeProfile = profile ?: UserProfile(
             userId = currentUserId ?: "local",
             displayName = if (isCloudLinked) {
-                Firebase.auth.currentUser?.displayName ?: "Pilote Néon"
+                runCatching { Firebase.auth.currentUser?.displayName }.getOrNull() ?: "Pilote Néon"
             } else {
                 "Pilote Néon"
             }

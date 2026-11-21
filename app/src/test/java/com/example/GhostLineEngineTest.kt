@@ -100,4 +100,26 @@ class GhostLineEngineTest {
         assertTrue(d5 > d2)
         assertTrue(GameConstants.WORLD_HALF_WIDTH == 300f)
     }
+
+    @Test
+    fun `split control mode steers left on left touch and right on right touch`() {
+        val engine = GameEngine(
+            mode = GameMode.SECTOR,
+            sectorIndex = 1,
+            controlMode = ControlMode.SPLIT,
+            savedGhosts = emptyList()
+        )
+        val initialHeading = engine.headingRad
+
+        engine.onTouchChanged(true, 0.2f)
+        engine.step(0.03f)
+        assertTrue("Left side touch should turn counter-clockwise", engine.headingRad < initialHeading)
+        val afterLeft = engine.headingRad
+
+        engine.onTouchChanged(true, 0.8f)
+        engine.step(0.03f)
+        assertTrue("Right side touch should turn clockwise", engine.headingRad > afterLeft)
+
+        assertEquals(ControlMode.SPLIT, ControlMode.fromRaw(null))
+    }
 }

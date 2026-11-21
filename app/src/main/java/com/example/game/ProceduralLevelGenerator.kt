@@ -7,11 +7,12 @@ import kotlin.random.Random
 
 object GameConstants {
     const val WORLD_HALF_WIDTH = 300f
-    const val SHIP_RADIUS = 10f
-    const val GHOST_TRAIL_RADIUS = 6f
-    const val GHOST_CRASH_RADIUS = 13f
-    const val NEAR_MISS_RADIUS = 30f
+    const val SHIP_RADIUS = 9f
+    const val GHOST_TRAIL_RADIUS = 5.5f
+    const val GHOST_CRASH_RADIUS = 12f
+    const val NEAR_MISS_RADIUS = 32f
     const val SPAWN_GRACE_DISTANCE = 150f
+    const val ORB_MAGNET_RADIUS = 62f
 }
 
 sealed interface Obstacle {
@@ -50,9 +51,9 @@ sealed interface Obstacle {
 
 data class EnergyOrb(
     val id: Int,
-    val x: Float,
-    val y: Float,
-    val radius: Float = 15f
+    var x: Float,
+    var y: Float,
+    val radius: Float = 16f
 )
 
 data class GeneratedChunk(
@@ -79,14 +80,14 @@ class ProceduralLevelGenerator(seed: Long) {
         val orbs = ArrayList<EnergyOrb>(2)
 
         val d = difficulty.coerceIn(0f, 1f)
-        val gapHalf = (108f - d * 24f).coerceIn(78f, 112f)
-        val maxShift = 165f
-        val desiredX = (lastGapX + rng.nextFloat() * 260f - 130f).coerceIn(-maxShift, maxShift)
+        val gapHalf = (122f - d * 36f).coerceIn(82f, 124f)
+        val maxShift = 155f
+        val desiredX = (lastGapX + rng.nextFloat() * 230f - 115f).coerceIn(-maxShift, maxShift)
         lastGapX = desiredX
 
         when (chunkIndex % 4) {
             0 -> {
-                // Classic neon laser gate
+                // Welcoming neon laser gate with guiding orb right near the safe corridor
                 obstacles.add(
                     Obstacle.BarrierGate(
                         id = nextId++,
@@ -95,79 +96,78 @@ class ProceduralLevelGenerator(seed: Long) {
                         gapHalfWidth = gapHalf
                     )
                 )
-                // Tempting orb slightly off-center near a laser edge
-                val edgeOffset = (gapHalf - 34f) * (if (rng.nextBoolean()) 1f else -1f)
-                orbs.add(EnergyOrb(id = nextId++, x = desiredX + edgeOffset, y = yPos - 25f))
+                val gentleOffset = (gapHalf * 0.25f) * (if (rng.nextBoolean()) 1f else -1f)
+                orbs.add(EnergyOrb(id = nextId++, x = desiredX + gentleOffset, y = yPos - 18f))
             }
             1 -> {
-                // Twin staggered diamond monoliths or central diamond slalom
+                // Diamond slalom with crystal-clear safe lane orb
                 val centerDiamond = rng.nextBoolean()
                 if (centerDiamond) {
                     obstacles.add(
                         Obstacle.DiamondMonolith(
                             id = nextId++,
                             y = yPos,
-                            centerX = (desiredX * 0.5f).coerceIn(-110f, 110f),
-                            radius = 36f + d * 12f
+                            centerX = (desiredX * 0.45f).coerceIn(-105f, 105f),
+                            radius = 33f + d * 12f
                         )
                     )
-                    val side = if (desiredX >= 0f) -135f else 135f
+                    val side = if (desiredX >= 0f) -138f else 138f
                     orbs.add(EnergyOrb(id = nextId++, x = side, y = yPos))
                 } else {
                     obstacles.add(
                         Obstacle.DiamondMonolith(
                             id = nextId++,
                             y = yPos,
-                            centerX = -135f,
-                            radius = 34f + d * 10f
+                            centerX = -140f,
+                            radius = 31f + d * 10f
                         )
                     )
                     obstacles.add(
                         Obstacle.DiamondMonolith(
                             id = nextId++,
                             y = yPos,
-                            centerX = 135f,
-                            radius = 34f + d * 10f
+                            centerX = 140f,
+                            radius = 31f + d * 10f
                         )
                     )
                     orbs.add(EnergyOrb(id = nextId++, x = 0f, y = yPos))
                 }
             }
             2 -> {
-                // Oscillating neon sweeper bar
+                // Smooth oscillating sweeper bar
                 obstacles.add(
                     Obstacle.MovingSweeper(
                         id = nextId++,
                         y = yPos,
                         baseCenterX = 0f,
-                        amplitude = 145f,
-                        speedRadPerSec = 1.6f + d * 1.4f,
+                        amplitude = 140f,
+                        speedRadPerSec = 1.4f + d * 1.35f,
                         phaseOffset = rng.nextFloat() * (2f * PI.toFloat()),
-                        halfLength = 74f + d * 18f
+                        halfLength = 68f + d * 18f
                     )
                 )
-                orbs.add(EnergyOrb(id = nextId++, x = desiredX, y = yPos - 70f))
+                orbs.add(EnergyOrb(id = nextId++, x = desiredX, y = yPos - 75f))
             }
             else -> {
-                // Offset gate + risk diamond
+                // Offset gate + friendly orb ahead
                 obstacles.add(
                     Obstacle.BarrierGate(
                         id = nextId++,
                         y = yPos,
                         gapCenterX = desiredX,
-                        gapHalfWidth = gapHalf + 8f
+                        gapHalfWidth = gapHalf + 10f
                     )
                 )
-                val monolithX = if (desiredX > 0) -180f else 180f
+                val monolithX = if (desiredX > 0) -185f else 185f
                 obstacles.add(
                     Obstacle.DiamondMonolith(
                         id = nextId++,
-                        y = yPos - 130f,
-                        centerX = monolithX * 0.55f,
-                        radius = 30f + d * 8f
+                        y = yPos - 140f,
+                        centerX = monolithX * 0.52f,
+                        radius = 28f + d * 8f
                     )
                 )
-                orbs.add(EnergyOrb(id = nextId++, x = desiredX * 0.7f, y = yPos - 130f))
+                orbs.add(EnergyOrb(id = nextId++, x = desiredX * 0.72f, y = yPos - 110f))
             }
         }
 

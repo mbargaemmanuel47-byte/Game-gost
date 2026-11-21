@@ -4,12 +4,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -26,6 +33,7 @@ import com.example.data.UiState
 import com.example.ui.GameArenaScreen
 import com.example.ui.GhostLineViewModel
 import com.example.ui.MainHubScreen
+import com.example.ui.isFirebaseAvailable
 import com.example.ui.theme.GhostLineTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -58,13 +66,21 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun GhostLineApp() {
-    val auth = Firebase.auth
-    val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
-    val uid = currentUser?.uid
+    val context = LocalContext.current
+    val firebaseAvailable = remember(context) { isFirebaseAvailable(context) }
 
-    // Immediately launch into the game hub — no login wall required!
-    key(uid ?: "local") {
-        GhostLineRoot(currentUserId = uid)
+    if (firebaseAvailable) {
+        val auth = remember { Firebase.auth }
+        val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
+        val uid = currentUser?.uid
+        key(uid ?: "local") {
+            GhostLineRoot(currentUserId = uid)
+        }
+    } else {
+        // Offline / CI build without google-services.json: run seamlessly in local Room mode
+        key("local") {
+            GhostLineRoot(currentUserId = null)
+        }
     }
 }
 
@@ -77,11 +93,17 @@ private fun GhostLineRoot(currentUserId: String?) {
                 val app = checkNotNull(this[APPLICATION_KEY]) {
                     "APPLICATION_KEY missing from CreationExtras"
                 }
-                val databaseId = app.getString(R.string.firestore_database_id)
-                val db = FirebaseFirestore.getInstance(databaseId)
+                val firebaseReady = isFirebaseAvailable(app)
+                val db = if (firebaseReady) {
+                    val databaseId = app.getString(R.string.firestore_database_id)
+                    FirebaseFirestore.getInstance(databaseId)
+                } else {
+                    null
+                }
+                val auth = if (firebaseReady) Firebase.auth else null
                 val localDao = GhostLineDatabase.getInstance(app).ghostLineDao()
                 GhostLineViewModel(
-                    repository = GhostLineRepository(dao = localDao, db = db),
+                    repository = GhostLineRepository(dao = localDao, db = db, auth = auth),
                     currentUserId = currentUserId
                 )
             }
@@ -120,43 +142,61 @@ private fun GhostLineRoot(currentUserId: String?) {
         audioEngine.sfxEnabled = profile?.sfxOn ?: true
     }
 
-    val runConfig = activeRunConfig
-    if (runConfig != null && profile != null) {
-        val targetSectorKey = if (runConfig.mode == GameMode.ENDLESS) 0L else runConfig.sectorIndex.toLong()
-        val sectorGhosts = successData.ghosts.filter { it.sectorIndex == targetSectorKey }
+    val inArena = activeRunConfig != null && profile != null
+    AnimatedContent(
+        targetState = inArena,
+        transitionSpec = {
+            (fadeIn(tween(260)) + scaleIn(initialScale = 0.96f, animationSpec = tween(260)))
+                .togetherWith(fadeOut(tween(200)))
+        },
+        label = "hub_arena_transition"
+    ) { showArena ->
+        val runConfig = activeRunConfig
+        if (showArena && runConfig != null && profile != null) {
+            val targetSectorKey = if (runConfig.mode == GameMode.ENDLESS) 0L else runConfig.sectorIndex.toLong()
+            val sectorGhosts = successData.ghosts.filter { it.sectorIndex == targetSectorKey }
 
-        GameArenaScreen(
-            runConfig = runConfig,
-            controlMode = profile.controlModeEnum(),
-            musicOn = profile.musicOn,
-            sfxOn = profile.sfxOn,
-            hapticsOn = profile.hapticsOn,
-            bestEndlessScore = profile.bestEndlessScore,
-            savedGhostsForSector = sectorGhosts,
-            audioEngine = audioEngine,
-            onToggleMute = {
-                val nextAudio = !(profile.musicOn || profile.sfxOn)
-                viewModel.updatePreferences(
-                    controlMode = profile.controlModeEnum(),
-                    musicOn = nextAudio,
-                    sfxOn = nextAudio,
-                    hapticsOn = profile.hapticsOn
-                )
-            },
-            onRunFinished = viewModel::onRunFinished,
-            onRetry = { mode, sector -> viewModel.launchRun(mode, sector) },
-            onExitArena = { viewModel.closeArena() }
-        )
-    } else {
-        MainHubScreen(
-            hubState = hubState,
-            selectedSector = selectedSector,
-            statusBanner = statusBanner,
-            onClearBanner = viewModel::clearBanner,
-            onSelectSector = viewModel::selectSector,
-            onLaunchRun = viewModel::launchRun,
-            onUpdatePreferences = viewModel::updatePreferences,
-            onPurgeAllGhosts = viewModel::purgeGhosts
-        )
+            GameArenaScreen(
+                runConfig = runConfig,
+                controlMode = profile.controlModeEnum(),
+                musicOn = profile.musicOn,
+                sfxOn = profile.sfxOn,
+                hapticsOn = profile.hapticsOn,
+                bestEndlessScore = profile.bestEndlessScore,
+                savedGhostsForSector = sectorGhosts,
+                audioEngine = audioEngine,
+                onToggleMute = {
+                    val nextAudio = !(profile.musicOn || profile.sfxOn)
+                    viewModel.updatePreferences(
+                        controlMode = profile.controlModeEnum(),
+                        musicOn = nextAudio,
+                        sfxOn = nextAudio,
+                        hapticsOn = profile.hapticsOn
+                    )
+                },
+                onSelectControlMode = { newMode ->
+                    viewModel.updatePreferences(
+                        controlMode = newMode,
+                        musicOn = profile.musicOn,
+                        sfxOn = profile.sfxOn,
+                        hapticsOn = profile.hapticsOn
+                    )
+                },
+                onRunFinished = viewModel::onRunFinished,
+                onRetry = { mode, sector -> viewModel.launchRun(mode, sector) },
+                onExitArena = { viewModel.closeArena() }
+            )
+        } else {
+            MainHubScreen(
+                hubState = hubState,
+                selectedSector = selectedSector,
+                statusBanner = statusBanner,
+                onClearBanner = viewModel::clearBanner,
+                onSelectSector = viewModel::selectSector,
+                onLaunchRun = viewModel::launchRun,
+                onUpdatePreferences = viewModel::updatePreferences,
+                onPurgeAllGhosts = viewModel::purgeGhosts
+            )
+        }
     }
 }

@@ -20,7 +20,7 @@ data class LocalProfileEntity(
     val highestSector: Long = 1L,
     val totalRuns: Long = 0L,
     val totalNearMisses: Long = 0L,
-    val preferredControlMode: String = ControlMode.ALTERNATING.name,
+    val preferredControlMode: String = ControlMode.SPLIT.name,
     val musicOn: Boolean = true,
     val sfxOn: Boolean = true,
     val hapticsOn: Boolean = true

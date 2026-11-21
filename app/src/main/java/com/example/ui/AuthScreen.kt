@@ -83,6 +83,7 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
 import com.google.firebase.Firebase
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.CoroutineScope
@@ -99,6 +100,20 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
+internal fun isFirebaseAvailable(context: Context): Boolean =
+    FirebaseApp.getApps(context).isNotEmpty()
+
+@Suppress("DiscouragedApi")
+internal fun resolveDefaultWebClientId(context: Context): String? {
+    val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+    if (resId == 0) return null
+    return try {
+        context.getString(resId).takeIf { it.isNotBlank() }
+    } catch (_: Exception) {
+        null
+    }
+}
+
 fun attemptAutoSignIn(
     context: Context,
     credentialManager: CredentialManager,
@@ -106,13 +121,16 @@ fun attemptAutoSignIn(
     onUnauthenticated: () -> Unit,
     scope: CoroutineScope
 ) {
-    if (Firebase.auth.currentUser != null) {
+    if (!isFirebaseAvailable(context)) {
+        onUnauthenticated()
+        return
+    }
+    if (runCatching { Firebase.auth.currentUser }.getOrNull() != null) {
         onAuthSuccess()
         return
     }
-    val clientId = try {
-        context.getString(R.string.default_web_client_id)
-    } catch (_: Exception) {
+    val clientId = resolveDefaultWebClientId(context)
+    if (clientId == null) {
         onUnauthenticated()
         return
     }
@@ -149,10 +167,9 @@ fun onGoogleSignInClicked(
     scope: CoroutineScope,
     onAuthCancelled: () -> Unit = {}
 ) {
-    val clientId = try {
-        context.getString(R.string.default_web_client_id)
-    } catch (_: Exception) {
-        onAuthError("Configuration Google Sign-In manquante (default_web_client_id).")
+    val clientId = if (isFirebaseAvailable(context)) resolveDefaultWebClientId(context) else null
+    if (clientId == null) {
+        onAuthError("Synchronisation Google indisponible sur cette version locale.")
         return
     }
     val signInOption = GetSignInWithGoogleOption.Builder(serverClientId = clientId).build()
@@ -196,7 +213,7 @@ fun signOut(
             } catch (e: Exception) {
                 Log.w("Auth", "Failed to clear credential state: ${e.message}")
             } finally {
-                Firebase.auth.signOut()
+                runCatching { Firebase.auth.signOut() }
                 onSignOutComplete()
             }
         }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -41,13 +42,10 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -75,6 +73,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -82,6 +81,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -92,6 +92,8 @@ import com.example.data.GameMode
 import com.example.data.GhostRecord
 import com.example.data.UiState
 import com.example.data.UserProfile
+import com.example.ui.components.BouncyPillButton
+import com.example.ui.components.SoftGlassCard
 import com.example.ui.theme.DeepSurface
 import com.example.ui.theme.GlassSurface
 import com.example.ui.theme.MidnightIndigo
@@ -105,6 +107,7 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.VoidBlack
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
 enum class HubTab {
@@ -155,36 +158,42 @@ fun MainHubScreen(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             bottomBar = {
                 if (!useRail) {
-                    NavigationBar(
-                        containerColor = MidnightIndigo.copy(alpha = 0.92f),
-                        contentColor = TextPrimary
+                    Surface(
+                        color = MidnightIndigo.copy(alpha = 0.90f),
+                        border = BorderStroke(0.8.dp, OutlineGlow)
                     ) {
-                        HubTab.entries.forEach { tab ->
-                            val selected = tab == currentTab
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = { currentTab = tab },
-                                modifier = Modifier.testTag("nav_${tab.name.lowercase()}"),
-                                icon = {
-                                    Icon(
-                                        imageVector = tabIcon(tab, selected),
-                                        contentDescription = tabLabel(tab)
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            contentColor = TextPrimary,
+                            modifier = Modifier.navigationBarsPadding()
+                        ) {
+                            HubTab.entries.forEach { tab ->
+                                val selected = tab == currentTab
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = { currentTab = tab },
+                                    modifier = Modifier.testTag("nav_${tab.name.lowercase()}"),
+                                    icon = {
+                                        Icon(
+                                            imageVector = tabIcon(tab, selected),
+                                            contentDescription = tabLabel(tab)
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = tabLabel(tab),
+                                            style = MaterialTheme.typography.labelMedium
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = VoidBlack,
+                                        selectedTextColor = NeonCyan,
+                                        indicatorColor = NeonCyan,
+                                        unselectedIconColor = TextSecondary,
+                                        unselectedTextColor = TextSecondary
                                     )
-                                },
-                                label = {
-                                    Text(
-                                        text = tabLabel(tab),
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = VoidBlack,
-                                    selectedTextColor = NeonCyan,
-                                    indicatorColor = NeonCyan,
-                                    unselectedIconColor = TextSecondary,
-                                    unselectedTextColor = TextSecondary
                                 )
-                            )
+                            }
                         }
                     }
                 }
@@ -243,16 +252,13 @@ fun MainHubScreen(
                                 modifier = Modifier.fillMaxSize().padding(24.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = DeepSurface),
-                                    border = BorderStroke(1.dp, NeonCoral)
-                                ) {
+                                SoftGlassCard(accentBorder = NeonCoral.copy(alpha = 0.6f)) {
                                     Column(
-                                        modifier = Modifier.padding(20.dp),
+                                        modifier = Modifier.padding(22.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text("Oups, erreur réseau", style = MaterialTheme.typography.titleLarge, color = NeonCoral)
+                                        Text("Oups, petite pause réseau", style = MaterialTheme.typography.titleLarge, color = NeonCoral)
                                         Text(hubState.message, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                                     }
                                 }
@@ -274,6 +280,19 @@ fun MainHubScreen(
                                                 data.profile.controlModeEnum(),
                                                 nextAudio,
                                                 nextAudio,
+                                                data.profile.hapticsOn
+                                            )
+                                        },
+                                        onCycleControlMode = {
+                                            val nextMode = when (data.profile.controlModeEnum()) {
+                                                ControlMode.SPLIT -> ControlMode.ALTERNATING
+                                                ControlMode.ALTERNATING -> ControlMode.CONTINUOUS
+                                                ControlMode.CONTINUOUS -> ControlMode.SPLIT
+                                            }
+                                            onUpdatePreferences(
+                                                nextMode,
+                                                data.profile.musicOn,
+                                                data.profile.sfxOn,
                                                 data.profile.hapticsOn
                                             )
                                         }
@@ -308,7 +327,7 @@ private fun AmbientHubBackdrop(modifier: Modifier = Modifier) {
         initialValue = 0f,
         targetValue = (2.0 * PI).toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 9000, easing = LinearEasing),
+            animation = tween(durationMillis = 10000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "wave_phase"
@@ -321,31 +340,39 @@ private fun AmbientHubBackdrop(modifier: Modifier = Modifier) {
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(NeonCyan.copy(alpha = 0.14f), Color.Transparent),
-                center = Offset(w * 0.2f, h * 0.16f),
-                radius = w * 0.7f
+                center = Offset(w * 0.2f, h * 0.14f),
+                radius = w * 0.72f
             ),
-            radius = w * 0.7f,
-            center = Offset(w * 0.2f, h * 0.16f)
+            radius = w * 0.72f,
+            center = Offset(w * 0.2f, h * 0.14f)
         )
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(NeonMagenta.copy(alpha = 0.12f), Color.Transparent),
-                center = Offset(w * 0.85f, h * 0.72f),
+                colors = listOf(NeonViolet.copy(alpha = 0.13f), Color.Transparent),
+                center = Offset(w * 0.85f, h * 0.45f),
+                radius = w * 0.6f
+            ),
+            radius = w * 0.6f,
+            center = Offset(w * 0.85f, h * 0.45f)
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(NeonMagenta.copy(alpha = 0.11f), Color.Transparent),
+                center = Offset(w * 0.65f, h * 0.82f),
                 radius = w * 0.65f
             ),
             radius = w * 0.65f,
-            center = Offset(w * 0.85f, h * 0.72f)
+            center = Offset(w * 0.65f, h * 0.82f)
         )
 
-        // Subtle flowing ghost ribbons in background
         val wave1 = Path()
         val wave2 = Path()
-        val steps = 28
+        val steps = 32
         for (i in 0..steps) {
             val t = i.toFloat() / steps.toFloat()
             val y = t * h
-            val x1 = w * 0.78f + sin(t * 5f + phase) * 34f
-            val x2 = w * 0.18f + sin(t * 4f - phase * 0.8f) * 26f
+            val x1 = w * 0.80f + sin(t * 5f + phase) * 32f
+            val x2 = w * 0.16f + sin(t * 4f - phase * 0.85f) * 26f
             if (i == 0) {
                 wave1.moveTo(x1, y)
                 wave2.moveTo(x2, y)
@@ -357,12 +384,12 @@ private fun AmbientHubBackdrop(modifier: Modifier = Modifier) {
         drawPath(
             path = wave1,
             color = NeonCyan.copy(alpha = 0.12f),
-            style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            style = Stroke(width = 4.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
         drawPath(
             path = wave2,
             color = NeonMagenta.copy(alpha = 0.10f),
-            style = Stroke(width = 3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            style = Stroke(width = 3.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
     }
 }
@@ -374,36 +401,42 @@ private fun PlayTabContent(
     selectedSector: Int,
     onSelectSector: (Int) -> Unit,
     onLaunchRun: (GameMode, Int) -> Unit,
-    onToggleAudio: () -> Unit
+    onToggleAudio: () -> Unit,
+    onCycleControlMode: () -> Unit
 ) {
     val maxSector = profile.highestSector.toInt().coerceAtLeast(1)
     val sectorGhostCount = ghosts.count { it.sectorIndex == selectedSector.toLong() }
     val endlessGhostCount = ghosts.count { it.sectorIndex == 0L }
     val audioActive = profile.musicOn || profile.sfxOn
+    val controlMode = profile.controlModeEnum()
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .widthIn(max = 580.dp),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Minimalist playful header
+            // Playful Minimalist Header
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = "Ghost Line",
                             style = MaterialTheme.typography.displayMedium,
                             color = NeonCyan
                         )
                         Text(
-                            text = "Maintiens pour tourner • Relâche pour filer",
+                            text = when (controlMode) {
+                                ControlMode.SPLIT -> "Gauche ou droite pour tourner • Relâche pour filer"
+                                ControlMode.ALTERNATING -> "Appui long pour tourner • Relâche pour filer"
+                                ControlMode.CONTINUOUS -> "Appui long 360° • Relâche pour filer"
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -427,52 +460,64 @@ private fun PlayTabContent(
                 }
             }
 
-            // Clean airy KPI strip
+            // Live Mini-Glider Preview Strip + Quick Control Pill
             item {
-                Surface(
+                SoftGlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    color = GlassSurface,
                     shape = MaterialTheme.shapes.large,
-                    border = BorderStroke(1.dp, OutlineGlow.copy(alpha = 0.6f))
+                    accentBorder = OutlineGlow
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 14.dp, horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        MinimalStat(label = "Record", value = "${profile.bestEndlessScore}", accent = NeonCyan)
-                        MinimalStat(label = "Secteur max", value = "$maxSector", accent = NeonMagenta)
-                        MinimalStat(label = "Frôlements", value = "${profile.totalNearMisses}", accent = NeonAmber)
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        MiniGliderPreviewStrip(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(VoidBlack.copy(alpha = 0.5f))
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            MinimalStat(label = "Record", value = "${profile.bestEndlessScore}", accent = NeonCyan)
+                            MinimalStat(label = "Secteur", value = "$maxSector", accent = NeonMagenta)
+                            MinimalStat(label = "Frôlements", value = "${profile.totalNearMisses}", accent = NeonAmber)
+                        }
                     }
                 }
             }
 
-            // Hero Sector Card (Minimal & Tactile)
+            // Hero Sector Mode Card
             item {
-                Card(
+                SoftGlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = GlassSurface),
-                    border = BorderStroke(1.2.dp, NeonCyan.copy(alpha = 0.45f)),
-                    shape = MaterialTheme.shapes.large
+                    accentBorder = NeonCyan.copy(alpha = 0.42f)
                 ) {
                     Column(
-                        modifier = Modifier.padding(22.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Secteurs",
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = TextPrimary
-                            )
+                            Column {
+                                Text(
+                                    text = "Secteurs",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "Atteins le portail vert en esquivant tes échos",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextSecondary
+                                )
+                            }
                             Surface(
-                                color = NeonMagenta.copy(alpha = 0.16f),
+                                color = NeonMagenta.copy(alpha = 0.18f),
                                 shape = CircleShape
                             ) {
                                 Text(
@@ -484,9 +529,7 @@ private fun PlayTabContent(
                             }
                         }
 
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             val sectors = (1..maxSector).toList()
                             items(sectors) { sec ->
                                 val isSelected = sec == selectedSector
@@ -503,35 +546,32 @@ private fun PlayTabContent(
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = NeonCyan,
                                         selectedLabelColor = VoidBlack,
-                                        containerColor = VoidBlack.copy(alpha = 0.45f),
+                                        containerColor = DeepSurface.copy(alpha = 0.7f),
                                         labelColor = TextSecondary
                                     ),
                                     border = FilterChipDefaults.filterChipBorder(
                                         enabled = true,
                                         selected = isSelected,
-                                        borderColor = OutlineGlow.copy(alpha = 0.7f),
+                                        borderColor = OutlineGlow,
                                         selectedBorderColor = NeonCyan
                                     )
                                 )
                             }
                         }
 
-                        Button(
+                        BouncyPillButton(
                             onClick = { onLaunchRun(GameMode.SECTOR, selectedSector) },
+                            containerColor = NeonCyan,
+                            contentColor = VoidBlack,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(58.dp)
-                                .testTag("launch_sector_button"),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = NeonCyan,
-                                contentColor = VoidBlack
-                            ),
-                            shape = CircleShape
+                                .testTag("launch_sector_button")
                         ) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(24.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "Jouer Secteur $selectedSector",
+                                text = "Jouer • Secteur $selectedSector",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -540,16 +580,14 @@ private fun PlayTabContent(
                 }
             }
 
-            // Minimalist Endless Survival Card
+            // Survie Infinie Card
             item {
-                Card(
+                SoftGlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = GlassSurface),
-                    border = BorderStroke(1.2.dp, NeonMagenta.copy(alpha = 0.45f)),
-                    shape = MaterialTheme.shapes.large
+                    accentBorder = NeonMagenta.copy(alpha = 0.42f)
                 ) {
                     Column(
-                        modifier = Modifier.padding(22.dp),
+                        modifier = Modifier.padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Row(
@@ -575,17 +613,14 @@ private fun PlayTabContent(
                             )
                         }
 
-                        Button(
+                        BouncyPillButton(
                             onClick = { onLaunchRun(GameMode.ENDLESS, 0) },
+                            containerColor = NeonMagenta,
+                            contentColor = VoidBlack,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(54.dp)
-                                .testTag("launch_endless_button"),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = NeonMagenta,
-                                contentColor = VoidBlack
-                            ),
-                            shape = CircleShape
+                                .testTag("launch_endless_button")
                         ) {
                             Icon(Icons.Filled.Bolt, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
@@ -598,6 +633,120 @@ private fun PlayTabContent(
                     }
                 }
             }
+
+            // Quick Intuitive Control Switcher Chip
+            item {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Surface(
+                        onClick = onCycleControlMode,
+                        color = GlassSurface,
+                        border = BorderStroke(1.dp, OutlineGlow),
+                        shape = CircleShape
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.TouchApp,
+                                contentDescription = null,
+                                tint = NeonCyan,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Pilotage : ${controlMode.labelFr}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniGliderPreviewStrip(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "mini_glider")
+    val t by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "glider_progress"
+    )
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val centerY = h * 0.5f
+
+        val ghostPath = Path()
+        val cyanPath = Path()
+        val samples = 40
+        for (i in 0..samples) {
+            val f = i.toFloat() / samples.toFloat()
+            val x = f * w
+            val gy = centerY + sin(f * 3f * PI.toFloat() + 1.2f) * (h * 0.24f)
+            val cy = centerY + sin(f * 3f * PI.toFloat() + t * 2f * PI.toFloat()) * (h * 0.25f)
+            if (i == 0) {
+                ghostPath.moveTo(x, gy)
+                cyanPath.moveTo(x, cy)
+            } else {
+                ghostPath.lineTo(x, gy)
+                cyanPath.lineTo(x, cy)
+            }
+        }
+
+        drawPath(
+            path = ghostPath,
+            color = NeonMagenta.copy(alpha = 0.26f),
+            style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+        drawPath(
+            path = cyanPath,
+            color = NeonCyan.copy(alpha = 0.35f),
+            style = Stroke(width = 6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+
+        // Glowing Will-o'-the-Wisp ahead
+        val orbX = w * 0.78f
+        val orbY = centerY + sin(0.78f * 3f * PI.toFloat() + t * 2f * PI.toFloat()) * (h * 0.25f)
+        drawCircle(color = NeonCyan.copy(alpha = 0.25f), radius = 14f, center = Offset(orbX, orbY))
+        drawCircle(color = NeonCyan, radius = 6.5f, center = Offset(orbX, orbY))
+        drawCircle(color = Color.White, radius = 2.8f, center = Offset(orbX, orbY))
+
+        // Cute floating Ghost Spirit gliding across banner
+        val shipX = w * 0.34f
+        val phaseAngle = 0.34f * 3f * PI.toFloat() + t * 2f * PI.toFloat()
+        val shipY = centerY + sin(phaseAngle) * (h * 0.25f)
+        val slope = cos(phaseAngle) * 24f
+        rotate(degrees = 90f + slope, pivot = Offset(shipX, shipY)) {
+            val r = 13f
+            val tailWave = sin(t * 10f * PI.toFloat()) * 2.2f
+            val ghost = Path().apply {
+                moveTo(shipX, shipY - r * 1.15f)
+                cubicTo(shipX + r * 0.85f, shipY - r, shipX + r, shipY, shipX + r * 0.82f, shipY + r * 0.9f + tailWave)
+                quadraticTo(shipX + r * 0.4f, shipY + r * 0.55f, shipX, shipY + r * 0.95f - tailWave)
+                quadraticTo(shipX - r * 0.4f, shipY + r * 0.55f, shipX - r * 0.82f, shipY + r * 0.9f + tailWave)
+                cubicTo(shipX - r, shipY, shipX - r * 0.85f, shipY - r, shipX, shipY - r * 1.15f)
+                close()
+            }
+            drawPath(ghost, color = NeonCyan.copy(alpha = 0.35f), style = Stroke(width = 7f, join = StrokeJoin.Round))
+            drawPath(
+                ghost,
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFFEFFFFF), NeonCyan, NeonViolet.copy(alpha = 0.78f)),
+                    startY = shipY - r,
+                    endY = shipY + r
+                )
+            )
+            drawCircle(color = VoidBlack, radius = 2.1f, center = Offset(shipX - 4f, shipY - 2.5f))
+            drawCircle(color = VoidBlack, radius = 2.1f, center = Offset(shipX + 4f, shipY - 2.5f))
         }
     }
 }

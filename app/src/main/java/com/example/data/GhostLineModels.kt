@@ -9,22 +9,22 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 enum class ControlMode(val labelFr: String, val subtitleFr: String) {
+    SPLIT(
+        "Gauche / Droite (Intuitif)",
+        "Appuie à gauche pour aller à gauche, à droite pour aller à droite. Relâche pour filer droit."
+    ),
     ALTERNATING(
         "1 Doigt Alterné",
-        "Appui long pour tourner, relâcher pour filer droit. Alterne gauche/droite à chaque appui."
+        "Un seul doigt : chaque appui alterne gauche puis droite. Relâche pour filer tout droit."
     ),
     CONTINUOUS(
         "360° Continu",
-        "Appui long pour tourner en boucle horaire, relâcher pour filer droit."
-    ),
-    SPLIT(
-        "Gauche / Droite",
-        "Maintenir à gauche ou à droite de l'écran pour braquer, relâcher pour aller tout droit."
+        "Appui long pour tourner en boucle horaire, relâcher pour aller tout droit."
     );
 
     companion object {
         fun fromRaw(raw: String?): ControlMode =
-            entries.firstOrNull { it.name == raw } ?: ALTERNATING
+            entries.firstOrNull { it.name == raw } ?: SPLIT
     }
 }
 
@@ -50,7 +50,7 @@ data class UserProfile(
     val highestSector: Long = 1L,
     val totalRuns: Long = 0L,
     val totalNearMisses: Long = 0L,
-    val preferredControlMode: String = ControlMode.ALTERNATING.name,
+    val preferredControlMode: String = ControlMode.SPLIT.name,
     val musicOn: Boolean = true,
     val sfxOn: Boolean = true,
     val hapticsOn: Boolean = true,

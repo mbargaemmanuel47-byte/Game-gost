@@ -90,7 +90,7 @@ class GameEngine(
         private set
     var headingRad: Float = (-PI / 2.0).toFloat()
         private set
-    var currentSpeed: Float = 335f
+    var currentSpeed: Float = 278f
         private set
 
     // Next turn direction for ALTERNATING mode (+1 clockwise/right, -1 counter-clockwise/left)
@@ -141,7 +141,7 @@ class GameEngine(
     private val generator = ProceduralLevelGenerator(levelSeed)
     private val guidePoints = ArrayList<Vec2>(32)
     private var nextChunkIndex = 0
-    private var nextChunkY = -360f
+    private var nextChunkY = -400f
     private var lastTrailSamplePos = Vec2(0f, 0f)
     private val nearMissCooldowns = HashMap<Int, Float>()
     private val ghostNearMissCooldowns = HashMap<Int, Float>()
@@ -193,16 +193,16 @@ class GameEngine(
 
     private fun spawnNextChunk() {
         val diff = if (mode == GameMode.SECTOR) {
-            ((sectorIndex - 1) * 0.11f + (-nextChunkY / targetDistance) * 0.35f).coerceIn(0.08f, 0.95f)
+            ((sectorIndex - 1) * 0.11f + (-nextChunkY / targetDistance) * 0.35f).coerceIn(0.06f, 0.95f)
         } else {
-            (-nextChunkY / 8500f).coerceIn(0.10f, 0.98f)
+            (-nextChunkY / 8800f).coerceIn(0.08f, 0.98f)
         }
         val chunk = generator.generateChunk(nextChunkIndex, nextChunkY, diff)
         obstacles.addAll(chunk.obstacles)
         orbs.addAll(chunk.orbs)
         guidePoints.add(chunk.guidePoint)
         nextChunkIndex++
-        val spacing = (310f - diff * 55f).coerceIn(245f, 315f)
+        val spacing = (335f - diff * 60f).coerceIn(265f, 340f)
         nextChunkY -= spacing
     }
 
@@ -265,18 +265,18 @@ class GameEngine(
 
         elapsedSec += dt
 
-        // Speed progression
-        val sectorBase = 330f + (sectorIndex - 1).coerceAtLeast(0) * 14f
-        val ramp = if (mode == GameMode.ENDLESS) (distanceTraveled * 0.015f).coerceAtMost(210f) else (distanceTraveled * 0.01f).coerceAtMost(70f)
-        currentSpeed = (sectorBase + ramp).coerceAtMost(560f)
+        // Smooth, approachable speed progression
+        val sectorBase = 278f + (sectorIndex - 1).coerceAtLeast(0) * 14f
+        val ramp = if (mode == GameMode.ENDLESS) (distanceTraveled * 0.014f).coerceAtMost(240f) else (distanceTraveled * 0.009f).coerceAtMost(75f)
+        currentSpeed = (sectorBase + ramp).coerceAtMost(540f)
 
-        // Turning physics
+        // Responsive, silky-smooth turning physics
         if (activeTurnSign != 0f) {
-            val turnRate = 3.25f + (currentSpeed - 330f) * 0.002f
+            val turnRate = 3.45f + (currentSpeed - 278f).coerceAtLeast(0f) * 0.0022f
             headingRad += activeTurnSign * turnRate * dt
             if (controlMode != ControlMode.CONTINUOUS) {
-                val minAngle = (-PI * 0.87).toFloat()
-                val maxAngle = (-PI * 0.13).toFloat()
+                val minAngle = (-PI * 0.86).toFloat()
+                val maxAngle = (-PI * 0.14).toFloat()
                 headingRad = headingRad.coerceIn(minAngle, maxAngle)
             }
         }
@@ -301,16 +301,16 @@ class GameEngine(
         }
 
         // Emit subtle engine neon sparks
-        if (fxRng.nextFloat() < 0.65f) {
+        if (fxRng.nextFloat() < 0.72f) {
             particles.add(
                 Particle(
                     x = shipX + fxRng.nextFloat() * 8f - 4f,
                     y = shipY + fxRng.nextFloat() * 8f - 4f,
                     vx = -cos(headingRad) * 65f + (fxRng.nextFloat() - 0.5f) * 45f,
                     vy = -sin(headingRad) * 65f + (fxRng.nextFloat() - 0.5f) * 45f,
-                    life = 0.35f,
-                    maxLife = 0.35f,
-                    size = 3.2f,
+                    life = 0.38f,
+                    maxLife = 0.38f,
+                    size = 3.4f,
                     colorIndex = if (activeTurnSign != 0f) 1 else 0
                 )
             )
@@ -333,22 +333,30 @@ class GameEngine(
             phase = RunPhase.SECTOR_CLEARED
             score += 500L
             flashAlpha = 0.65f
-            spawnBurst(shipX, shipY, count = 42, colorIndex = 0)
+            spawnBurst(shipX, shipY, count = 48, colorIndex = 0)
             events.add(EngineEvent.SectorCleared)
             return events
         }
 
-        // Check Orb pickups
+        // Magnetic pull & Orb pickups
         for (orb in orbs) {
             if (!collectedOrbIds.contains(orb.id)) {
-                val dist = hypot(shipX - orb.x, shipY - orb.y)
-                if (dist <= GameConstants.SHIP_RADIUS + orb.radius) {
+                val dx = shipX - orb.x
+                val dy = shipY - orb.y
+                val dist = hypot(dx, dy)
+                if (dist in 0.01f..GameConstants.ORB_MAGNET_RADIUS) {
+                    val pull = (1f - dist / GameConstants.ORB_MAGNET_RADIUS) * 420f * dt
+                    orb.x += (dx / dist) * pull
+                    orb.y += (dy / dist) * pull
+                }
+                val updatedDist = hypot(shipX - orb.x, shipY - orb.y)
+                if (updatedDist <= GameConstants.SHIP_RADIUS + orb.radius) {
                     collectedOrbIds.add(orb.id)
                     val pts = 50L * comboMultiplier
                     bonusScore += pts
-                    comboDecayTimer = 3.2f
-                    popups.add(FloatingPopup("+$pts ORBE", orb.x, orb.y - 16f, 0.9f, 0.9f, 0))
-                    spawnBurst(orb.x, orb.y, count = 14, colorIndex = 0)
+                    comboDecayTimer = 3.5f
+                    popups.add(FloatingPopup("+$pts", orb.x, orb.y - 16f, 0.9f, 0.9f, 0))
+                    spawnBurst(orb.x, orb.y, count = 16, colorIndex = 0)
                     events.add(EngineEvent.OrbCollected)
                 }
             }
