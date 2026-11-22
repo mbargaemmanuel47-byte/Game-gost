@@ -62,10 +62,22 @@ jobs:
             -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
             --stacktrace
 
-      - name: Verify APK output
+      - name: Verify and sign APK (v1 + v2)
         run: |
-          ls -lh app/build/outputs/apk/debug/app-debug.apk
+          SDK_PATH="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          APKSIGNER="$SDK_PATH/build-tools/36.0.0/apksigner"
           cp app/build/outputs/apk/debug/app-debug.apk GhostLine.apk
+          "$APKSIGNER" sign \
+            --ks debug.keystore \
+            --ks-pass pass:android \
+            --ks-key-alias androiddebugkey \
+            --key-pass pass:android \
+            --min-sdk-version 21 \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            GhostLine.apk
+          "$APKSIGNER" verify --min-sdk-version 21 GhostLine.apk
+          ls -lh GhostLine.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -82,7 +94,7 @@ jobs:
           else
             gh release create latest GhostLine.apk \
               --target "${{ github.sha }}" \
-              --title "Ghost Line APK (Android 7.0+)" \
-              --notes "Build automatique Ghost Line (Android 7.0+)" \
+              --title "Ghost Line APK (Android 6.0+)" \
+              --notes "Build automatique Ghost Line (Android 6.0+)" \
               --latest
           fi
